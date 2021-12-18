@@ -90,8 +90,10 @@ app.get('/pushcard', async (req, res) => {
 
     //push notify
     const response = await client.broadcast(message);
+    res.send(response);
   } else {
     console.log("No today card")
+    res.send({ reply: "No today card" });
   }
 })
 
