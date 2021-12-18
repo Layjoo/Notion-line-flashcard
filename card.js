@@ -3,13 +3,15 @@ let today = new Date(Date.now()).toISOString().slice(0,10);
 
 const intervalModified = 50;
 const easyBonus = 1.3;
+const startEase = 250;
+const startDateInterval = 2;
 
 const card = {
-    question: "ตัวอะไรมี 4 ขาหลังคามุงกระเบื้อง",
-    answer: "เต่า",
+    front: "ตัวอะไรมี 4 ขาหลังคามุงกระเบื้อง",
+    back: "เต่า",
     date: today,
-    current: 10,
-    ease: 250
+    current: startDateInterval,
+    ease: startEase
 }
 
 const showCard = (card) => {
@@ -24,8 +26,8 @@ const showCard = (card) => {
 
 const setNewInterval = (card, status) => {
     const _card = JSON.parse(JSON.stringify(card));
-    const current = parseInt(_card.current) || 10;
-    const ease = parseInt(_card.ease) || 250;
+    const current = parseInt(_card.current) || startDateInterval;
+    const ease = parseInt(_card.ease) || startEase;
     let date = _card.date || today;
     date = new Date(date);
     let newInterval;
@@ -86,8 +88,8 @@ module.exports = {
     setNewInterval
 }
 
-//test card
-////////////////////
+// test card
+//////////////////
 // let test = true;
 // let i=0;
 // let mycard = card

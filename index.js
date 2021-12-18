@@ -1,7 +1,15 @@
 require("dotenv").config();
-const { getTodayCard, updateCard } = require("./notion");
-const { setNewInterval } = require("./card");
+const {
+  getTodayCard,
+  updateCard
+} = require("./notion");
+const {
+  setNewInterval
+} = require("./card");
 const line = require("@line/bot-sdk");
+const {
+  default: axios
+} = require("axios");
 const database = process.env.DATABASE;
 const app = require('express')();
 const port = process.env.PORT || 3000;
@@ -78,6 +86,41 @@ const sendCard = (displayText, card) => {
   };
 };
 
+const sendContinue = (remain) => {
+  return {
+    type: "text",
+    text: `เหลือการ์ดวันนี้อีก ${remain} ใบ`,
+    quickReply: {
+      items: [{
+          type: "action",
+          action: {
+            type: "postback",
+            label: "เปิด",
+            data: `{"input": "next"}`,
+            displayText: "เปิด",
+          },
+        },
+        {
+          type: "action",
+          action: {
+            type: "postback",
+            label: "ไว้ที่หลัง",
+            data: `{"input": "later"}`,
+            displayText: "ไว้ที่หลัง",
+          },
+        },
+      ],
+    },
+  };
+}
+
+const message = (message) => {
+  return {
+    type: "text",
+    text: message,
+  };
+};
+
 app.get('/pushcard', async (req, res) => {
   //get card from notion for today
   const cardArr = await getTodayCard(database);
@@ -93,7 +136,9 @@ app.get('/pushcard', async (req, res) => {
     res.send(response);
   } else {
     console.log("No today card")
-    res.send({ reply: "No today card" });
+    res.send({
+      reply: "No today card"
+    });
   }
 })
 
@@ -112,10 +157,14 @@ async function handleEvent(event) {
   //check for postback
   if (event.type == 'postback') {
     const data = JSON.parse(event.postback.data);
-    const card = data.card;
-    const front = card.front;
-    const back = card.back;
+    const card = data.card || "";
+    const front = card.front || "";
+    const back = card.back || "";
     const input = data.input
+
+    if(input == "later"){
+      return event;
+    }
 
     if (input == "back") {
       //send back card
@@ -134,8 +183,18 @@ async function handleEvent(event) {
 
       //send question again
       const message = sendCard(front, JSON.stringify(modifiedCard));
-      const response = await client.broadcast(message);
+      const response = await client.replyMessage(
+        event.replyToken,
+        message
+      );
       console.log("Send card again")
+    } else if (input == "next") {
+      //send new question
+      const response = await axios({
+        method: "get",
+        url: "https://line-flash-card.herokuapp.com/pushcard"
+      })
+      console.log("send new question")
     } else {
       //set new interval
       const modifiedCard = setNewInterval(card, input);
@@ -143,6 +202,23 @@ async function handleEvent(event) {
       //upload status to notion
       await updateCard(modifiedCard)
       console.log("Update Success");
+
+      //send remain card?
+      const cardArr = await getTodayCard(database);
+      const remain = cardArr.length;
+      
+      if(remain !== 0){
+      const response = await client.replyMessage(
+        event.replyToken,
+        sendContinue(remain)
+      );
+      console.log("Send remain card")
+      }else{
+        const response = await client.replyMessage(
+        event.replyToken,
+        message("ทวนการ์ดวันนี้ครบแล้ว🎉")
+      );
+      }
     }
   }
   return event;
