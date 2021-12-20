@@ -183,8 +183,7 @@ async function handleEvent(event) {
       //send new question
       const response = await axios({
         method: "get",
-        // url: "https://line-flash-card.herokuapp.com/pushcard"
-        url: "https://97c0-2403-6200-8840-8c34-4400-96d9-16c3-1aee.ngrok.io/pushcard"
+        url: "https://line-flash-card.herokuapp.com/pushcard"
       })
       console.log("send new question")
     } else {
