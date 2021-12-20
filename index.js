@@ -22,7 +22,12 @@ const config = {
 
 const client = new line.Client(config);
 
-const sendBack = (displayText, card) => {
+const sendBack = (displayText, _card) => {
+  const easyPredicted = setNewInterval(_card, "easy").current;
+  const hardPredicted = setNewInterval(_card, "hard").current;
+  const goodPredicted = setNewInterval(_card, "good").current;
+
+  const card = JSON.stringify(_card);
   return {
     type: "text",
     text: displayText,
@@ -31,7 +36,7 @@ const sendBack = (displayText, card) => {
           type: "action",
           action: {
             type: "postback",
-            label: "again💀",
+            label: `again💀`,
             data: `{"card": ${card}, "input": "again"}`,
             displayText: "again",
           },
@@ -40,7 +45,7 @@ const sendBack = (displayText, card) => {
           type: "action",
           action: {
             type: "postback",
-            label: "hard😐",
+            label: `hard😐 (${hardPredicted} วัน)`,
             data: `{"card": ${card}, "input": "hard"}`,
             displayText: "hard",
           },
@@ -49,7 +54,7 @@ const sendBack = (displayText, card) => {
           type: "action",
           action: {
             type: "postback",
-            label: "good🙂",
+            label: `good🙂 (${goodPredicted} วัน)`,
             data: `{"card": ${card}, "input": "good"}`,
             displayText: "good",
           },
@@ -58,7 +63,7 @@ const sendBack = (displayText, card) => {
           type: "action",
           action: {
             type: "postback",
-            label: "easy🤣",
+            label: `easy🤣 (${easyPredicted} วัน)`,
             data: `{"card": ${card}, "input": "easy"}`,
             displayText: "easy",
           },
@@ -168,31 +173,18 @@ async function handleEvent(event) {
 
     if (input == "back") {
       //send back card
-      const message = sendBack(back, JSON.stringify(card));
+      const message = sendBack(back, card);
       const response = await client.replyMessage(
         event.replyToken,
         message
       );
       console.log("Send back card")
-    } else if (input == "again") {
-      //set new interval
-      const modifiedCard = setNewInterval(card, input);
-
-      //upload status to notion
-      await updateCard(modifiedCard)
-
-      //send question again
-      const message = sendCard(front, JSON.stringify(modifiedCard));
-      const response = await client.replyMessage(
-        event.replyToken,
-        message
-      );
-      console.log("Send card again")
     } else if (input == "next") {
       //send new question
       const response = await axios({
         method: "get",
-        url: "https://line-flash-card.herokuapp.com/pushcard"
+        // url: "https://line-flash-card.herokuapp.com/pushcard"
+        url: "https://97c0-2403-6200-8840-8c34-4400-96d9-16c3-1aee.ngrok.io/pushcard"
       })
       console.log("send new question")
     } else {

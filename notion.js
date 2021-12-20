@@ -58,6 +58,12 @@ const getTodayCard = async (database) => {
                     },
                 ],
             },
+            sorts: [
+                {
+                  "timestamp": "last_edited_time",
+                  "direction": "ascending"
+                }
+            ]
         }),
     };
 
