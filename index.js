@@ -1,7 +1,8 @@
 require("dotenv").config();
 const {
   getTodayCard,
-  updateCard
+  updateCard,
+  getAllCard
 } = require("./notion");
 const {
   setNewInterval
@@ -10,9 +11,11 @@ const line = require("@line/bot-sdk");
 const {
   default: axios
 } = require("axios");
+const command = require("nodemon/lib/config/command");
 const database = process.env.DATABASE;
 const app = require('express')();
 const port = process.env.PORT || 3000;
+const today = new Date(Date.now())
 
 //setting line
 const config = {
@@ -23,6 +26,7 @@ const config = {
 const client = new line.Client(config);
 
 const sendBack = (displayText, _card) => {
+  const pageId = _card.page_id;
   const easyPredicted = setNewInterval(_card, "easy").current;
   const hardPredicted = setNewInterval(_card, "hard").current;
   const goodPredicted = setNewInterval(_card, "good").current;
@@ -37,7 +41,7 @@ const sendBack = (displayText, _card) => {
           action: {
             type: "postback",
             label: `again💀`,
-            data: `{"card": ${card}, "input": "again"}`,
+            data: `{"pageId": "${pageId}", "input": "again"}`,
             displayText: "again",
           },
         },
@@ -46,7 +50,7 @@ const sendBack = (displayText, _card) => {
           action: {
             type: "postback",
             label: `hard😐 (${hardPredicted} วัน)`,
-            data: `{"card": ${card}, "input": "hard"}`,
+            data: `{"pageId": "${pageId}", "input": "hard"}`,
             displayText: "hard",
           },
         },
@@ -55,7 +59,7 @@ const sendBack = (displayText, _card) => {
           action: {
             type: "postback",
             label: `good🙂 (${goodPredicted} วัน)`,
-            data: `{"card": ${card}, "input": "good"}`,
+            data: `{"pageId": "${pageId}", "input": "good"}`,
             displayText: "good",
           },
         },
@@ -64,7 +68,7 @@ const sendBack = (displayText, _card) => {
           action: {
             type: "postback",
             label: `easy🤣 (${easyPredicted} วัน)`,
-            data: `{"card": ${card}, "input": "easy"}`,
+            data: `{"pageId": "${pageId}", "input": "easy"}`,
             displayText: "easy",
           },
         },
@@ -73,7 +77,7 @@ const sendBack = (displayText, _card) => {
   };
 };
 
-const sendCard = (displayText, card) => {
+const sendCard = (displayText, pageId) => {
   return {
     type: "text",
     text: displayText,
@@ -83,7 +87,7 @@ const sendCard = (displayText, card) => {
         action: {
           type: "postback",
           label: "เฉลย",
-          data: `{"card": ${card}, "input": "back"}`,
+          data: `{"pageId": "${pageId}", "input": "back"}`,
           displayText: "เฉลย",
         },
       }, ],
@@ -128,13 +132,16 @@ const message = (message) => {
 
 app.get('/pushcard', async (req, res) => {
   //get card from notion for today
-  const cardArr = await getTodayCard(database);
-  if (cardArr.length !== 0) {
-    const card = cardArr[0];
+  const cardArr = await getAllCard(database);
+  const todayCard = cardArr.filter(card=>new Date(card.date).getTime() < today.getTime())
+  if (todayCard.length !== 0) {
+    const card = todayCard[0];
 
     //get card front
     const front = card.front;
-    const message = sendCard(front, JSON.stringify(card));
+    const pageId = card.page_id;
+    console.log(pageId)
+    const message = sendCard(front, pageId);
 
     //push notify
     const response = await client.broadcast(message);
@@ -162,8 +169,12 @@ async function handleEvent(event) {
   //check for postback
   if (event.type == 'postback') {
     const data = JSON.parse(event.postback.data);
-    const card = data.card || "";
-    const front = card.front || "";
+    const pageId = data.pageId;
+
+    //get notion card
+    const getCard = await getAllCard(database);
+    const filterCard = getCard.filter(card => card.page_id == pageId)
+    const card = filterCard[0] || {};
     const back = card.back || "";
     const input = data.input
 
@@ -179,6 +190,7 @@ async function handleEvent(event) {
         message
       );
       console.log("Send back card")
+
     } else if (input == "next") {
       //send new question
       const response = await axios({
@@ -186,6 +198,7 @@ async function handleEvent(event) {
         url: "https://line-flash-card.herokuapp.com/pushcard"
       })
       console.log("send new question")
+
     } else {
       //set new interval
       const modifiedCard = setNewInterval(card, input);
@@ -195,8 +208,9 @@ async function handleEvent(event) {
       console.log("Update Success");
 
       //send remain card?
-      const cardArr = await getTodayCard(database);
-      const remain = cardArr.length;
+      const cardArr = await getAllCard(database);
+      const todayCard = cardArr.filter(card=>new Date(card.date).getTime() < today.getTime())
+      const remain = todayCard.length;
       
       if(remain !== 0){
       const response = await client.replyMessage(

@@ -118,7 +118,42 @@ const updateCard = async (card) => {
     return res.date;
 };
 
+const getAllCard = async (database) => {
+    const config = {
+        method: "post",
+        url: `https://api.notion.com/v1/databases/${database}/query`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16",
+            "Content-type": "application/json",
+        },
+        data: JSON.stringify({
+            filter: {
+                and: [{
+                        property: "status",
+                        select: {
+                            equals: "enable",
+                        },
+                    },
+                ],
+            },
+            sorts: [
+                {
+                  "timestamp": "last_edited_time",
+                  "direction": "ascending"
+                }
+            ]
+        }),
+    };
+
+    const res = await axios(config);
+    const data = res.data.results;
+    const cardArr = modifiedData(data);
+    return cardArr;
+};
+
 module.exports = {
     getTodayCard,
     updateCard,
+    getAllCard
 };

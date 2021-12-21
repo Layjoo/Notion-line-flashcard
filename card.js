@@ -1,10 +1,13 @@
+const { getTodayCard } = require('./notion');
+
 var prompt = require('prompt-sync')();
-let today = new Date(Date.now()).toISOString().slice(0,10);
+let todayObj = new Date(Date.now())
+let today = todayObj.toISOString().slice(0,10);
 
 const intervalModified = 50;
-const easyBonus = 1.3;
+const easyBonus = 3;
 const startEase = 250;
-const startDateInterval = 2;
+const startDateInterval = 1;
 
 const card = {
     front: "ตัวอะไรมี 4 ขาหลังคามุงกระเบื้อง",
@@ -30,6 +33,9 @@ const setNewInterval = (card, status) => {
     const ease = parseInt(_card.ease) || startEase;
     let date = _card.date || today;
     date = new Date(date);
+    if(date.getTime() < todayObj.getTime()){
+        date = new Date(today);
+    }
     let newInterval;
     let nextDay;
 
