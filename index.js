@@ -167,7 +167,7 @@ app.post("/callback", line.middleware(config), (req, res) => {
 // event handler if user interaction with bot
 async function handleEvent(event) {
 
-  if(event.message.text == "open card"){
+  if(event.type == "message" && event.message.text == "open card"){
     //send new question
     const response = await axios({
       method: "get",
