@@ -166,6 +166,16 @@ app.post("/callback", line.middleware(config), (req, res) => {
 
 // event handler if user interaction with bot
 async function handleEvent(event) {
+
+  if(event.message.text == "open card"){
+    //send new question
+    const response = await axios({
+      method: "get",
+      url: "https://line-flash-card.herokuapp.com/pushcard"
+    })
+    console.log("send new question")
+  }
+
   //check for postback
   if (event.type == 'postback') {
     const data = JSON.parse(event.postback.data);
