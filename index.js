@@ -8,6 +8,9 @@ const {
 const {
   setNewInterval
 } = require("./card");
+const {
+  carouselImg
+} = require("./flex-image")
 const line = require("@line/bot-sdk");
 const app = require('express')();
 const port = process.env.PORT || 3000;
@@ -229,17 +232,21 @@ app.post("/callback", line.middleware(config), (req, res) => {
 async function handleEvent(event) {
 
   //user send message "open card"
-  if (event.type == "message" && event.message.text == "open card") {
+  if (event.type == "message") {
+    switch (event.message.text) {
+      case "open card":
+        //get all decks
+        const decks = await retriveDeck("deck");
 
-    //get all decks
-    const decks = await retriveDeck("deck");
-
-    //user select decks
-    const message = sendDecks("เลือกหมวด", decks);
-    const response = await client.replyMessage(
-      event.replyToken,
-      message
-    );
+        //user select decks
+        const message = sendDecks("เลือกหมวด", decks);
+        const response = await client.replyMessage(
+          event.replyToken,
+          message
+        );
+        break;
+      default: break;
+    }
   }
 
   //check for postback
@@ -277,10 +284,17 @@ async function handleEvent(event) {
     const filterCard = getCard.filter(card => card.page_id == pageId)
     const card = filterCard[0] || {};
     const back = card.back || "";
+    const image = card.image || null;
 
     if (input == "back") {
       //send answer
-      const message = sendBack(back, card, deck);
+      let message;
+      if(image !== null){
+        const carousel = carouselImg(image);
+        message = [carousel, sendBack(back, card, deck)]
+      }else{
+        message = sendBack(back, card, deck);
+      }
       const response = await client.replyMessage(
         event.replyToken,
         message
@@ -321,6 +335,10 @@ async function handleEvent(event) {
     }
   }
   return event;
+}
+
+const pushImg = async() => {
+  const response = await client.broadcast(carousel);
 }
 
 app.listen(port, () => {

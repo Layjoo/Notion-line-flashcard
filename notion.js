@@ -21,6 +21,13 @@ const modifiedData = (data) => {
                 data.properties.current.rich_text[0].plain_text,
             ease: data.properties.ease.rich_text[0] &&
                 data.properties.ease.rich_text[0].plain_text,
+            image: data.properties.image.files[0] && data.properties.image.files.map(file=>{
+                if(file.type == "file"){
+                    return file.file.url
+                }else{
+                    return file.name;
+                }
+            })
         };
     });
     return property;
@@ -164,9 +171,35 @@ const retriveDeck = async (propertyName) => {
     return options;
 }
 
-// (async()=>{
-//     const response = await retriveDeck("deck");
-//     console.log(response)
+// (async () => {
+//     const config = {
+//         method: "post",
+//         url: `https://api.notion.com/v1/databases/${database}/query`,
+//         headers: {
+//             Authorization: `Bearer ${notionToken}`,
+//             "Notion-Version": "2021-08-16",
+//             "Content-type": "application/json",
+//         },
+//         data: JSON.stringify({
+//             filter: {
+//                 and: [{
+//                     property: "status",
+//                     select: {
+//                         equals: "enable",
+//                     },
+//                 }, ],
+//             }
+//         })
+//     }
+
+//     const res = await axios(config);
+//     console.log(res.data.results[0].properties.picture.files.map(file=>{
+//         if(file.type == "file"){
+//             return file.file.url
+//         }else{
+//             return file.name;
+//         }
+//     }));
 // })();
 
 module.exports = {
