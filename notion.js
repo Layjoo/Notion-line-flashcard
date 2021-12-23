@@ -1,5 +1,8 @@
 require("dotenv").config();
 const axios = require("axios");
+const {
+    json
+} = require("express/lib/response");
 const notionToken = process.env.NOTION_TOKEN;
 const database = process.env.DATABASE;
 let date = new Date(Date.now());
@@ -21,56 +24,6 @@ const modifiedData = (data) => {
         };
     });
     return property;
-};
-
-const getTodayCard = async (database) => {
-    const config = {
-        method: "post",
-        url: `https://api.notion.com/v1/databases/${database}/query`,
-        headers: {
-            Authorization: `Bearer ${notionToken}`,
-            "Notion-Version": "2021-08-16",
-            "Content-type": "application/json",
-        },
-        data: JSON.stringify({
-            filter: {
-                and: [{
-                        property: "status",
-                        select: {
-                            equals: "enable",
-                        },
-                    },
-                    {
-                        or: [{
-                                property: "date",
-                                date: {
-                                    equals: today,
-                                },
-                            },
-                            {
-                                property: "date",
-                                date: {
-                                    is_empty: true,
-                                },
-                            },
-
-                        ]
-                    },
-                ],
-            },
-            sorts: [
-                {
-                  "timestamp": "last_edited_time",
-                  "direction": "ascending"
-                }
-            ]
-        }),
-    };
-
-    const res = await axios(config);
-    const data = res.data.results;
-    const cardArr = modifiedData(data);
-    return cardArr;
 };
 
 const updateCard = async (card) => {
@@ -118,7 +71,7 @@ const updateCard = async (card) => {
     return res.date;
 };
 
-const getAllCard = async (database) => {
+const getAllCard = async () => {
     const config = {
         method: "post",
         url: `https://api.notion.com/v1/databases/${database}/query`,
@@ -130,19 +83,16 @@ const getAllCard = async (database) => {
         data: JSON.stringify({
             filter: {
                 and: [{
-                        property: "status",
-                        select: {
-                            equals: "enable",
-                        },
+                    property: "status",
+                    select: {
+                        equals: "enable",
                     },
-                ],
+                }, ],
             },
-            sorts: [
-                {
-                  "timestamp": "last_edited_time",
-                  "direction": "ascending"
-                }
-            ]
+            sorts: [{
+                "timestamp": "last_edited_time",
+                "direction": "ascending"
+            }]
         }),
     };
 
@@ -152,8 +102,76 @@ const getAllCard = async (database) => {
     return cardArr;
 };
 
+const getDeckCard = async (deck) => {
+    const config = {
+        method: "post",
+        url: `https://api.notion.com/v1/databases/${database}/query`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16",
+            "Content-type": "application/json",
+        },
+    };
+
+    //set request body
+    const data = {
+        filter: {
+            and: [{
+                property: "status",
+                select: {
+                    equals: "enable",
+                },
+            }, ],
+        },
+        sorts: [{
+            "timestamp": "last_edited_time",
+            "direction": "ascending"
+        }]
+    }
+
+    //check deck
+    if (deck) {
+        data.filter.and.push({
+            property: "deck",
+            select: {
+                equals: deck
+            }
+        })
+    }
+
+    config.data = JSON.stringify(data);
+
+    const res = await axios(config);
+    const page = res.data.results;
+    const cardArr = modifiedData(page);
+    return cardArr;
+};
+
+const retriveDeck = async (propertyName) => {
+    const config = {
+        method: 'get',
+        url: `https://api.notion.com/v1/databases/${database}`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16"
+        }
+    }
+
+    const response = await axios(config);
+    const selectProperty = response.data.properties[propertyName];
+    const options = selectProperty.select.options.map(option => option.name)
+
+    return options;
+}
+
+// (async()=>{
+//     const response = await retriveDeck("deck");
+//     console.log(response)
+// })();
+
 module.exports = {
-    getTodayCard,
     updateCard,
-    getAllCard
+    getAllCard,
+    retriveDeck,
+    getDeckCard
 };
