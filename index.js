@@ -3,7 +3,8 @@ const {
   updateCard,
   getAllCard,
   retriveDeck,
-  getDeckCard
+  getDeckCard,
+  updateSuspend
 } = require("./notion");
 const {
   setNewInterval
@@ -26,6 +27,7 @@ const client = new line.Client(config);
 
 const sendBack = (displayText, _card, deck) => {
   const pageId = _card.page_id;
+  //calculate interval prediction
   const easyPredicted = setNewInterval(_card, "easy").current;
   const hardPredicted = setNewInterval(_card, "hard").current;
   const goodPredicted = setNewInterval(_card, "good").current;
@@ -71,6 +73,15 @@ const sendBack = (displayText, _card, deck) => {
             displayText: "easy",
           },
         },
+        {
+          type: "action",
+          action: {
+            type: "postback",
+            label: `suspend🔥`,
+            data: `{"pageId": "${pageId}", "input": "suspend", "deck":"${deck}"}`,
+            displayText: "ระงับการ์ด",
+          },
+        }
       ],
     },
   };
@@ -154,6 +165,30 @@ const sendContinue = (remain, deck) => {
   };
 }
 
+const sendRemainCard = async(event, deck) => {
+  //send remain card
+  let cardArr;
+  if (deck == "random") {
+    cardArr = await getAllCard();
+  } else {
+    cardArr = await getDeckCard(deck);
+  }
+  const todayCard = cardArr.filter(card => new Date(card.date).getTime() < today.getTime())
+  const remain = todayCard.length;
+  if (remain !== 0) {
+    const response = await client.replyMessage(
+      event.replyToken,
+      sendContinue(remain, deck)
+    );
+    console.log("Send remain card")
+  } else {
+    const response = await client.replyMessage(
+      event.replyToken,
+      message("ทวนการ์ดวันนี้ครบแล้ว🎉")
+    );
+  }
+}
+
 const message = (message) => {
   return {
     type: "text",
@@ -231,7 +266,7 @@ app.post("/callback", line.middleware(config), (req, res) => {
 // event handler if user interaction with bot
 async function handleEvent(event) {
 
-  //user send message "open card"
+  //user send message
   if (event.type == "message") {
     switch (event.message.text) {
       case "open card":
@@ -274,6 +309,17 @@ async function handleEvent(event) {
       return event;
     }
 
+    if (input == "suspend") {
+      //update notion status to suspend
+      await updateSuspend(pageId);
+      console.log("card is suspended")
+
+      //send remain card
+      await sendRemainCard(event, deck);
+      console.log("send remain card")
+      return event;
+    }
+
     //get notion card
     let getCard;
     if (deck == "random") {
@@ -302,8 +348,6 @@ async function handleEvent(event) {
       console.log("Send back card")
     } else {
       //if user press good hard easy or again
-      ///////////////////////////////////////
-
       //set new interval
       const modifiedCard = setNewInterval(card, input);
 
@@ -312,33 +356,10 @@ async function handleEvent(event) {
       console.log("Update Success");
 
       //send remain card
-      let cardArr;
-      if (deck == "random") {
-        cardArr = await getAllCard();
-      } else {
-        cardArr = await getDeckCard(deck);
-      }
-      const todayCard = cardArr.filter(card => new Date(card.date).getTime() < today.getTime())
-      const remain = todayCard.length;
-      if (remain !== 0) {
-        const response = await client.replyMessage(
-          event.replyToken,
-          sendContinue(remain, deck)
-        );
-        console.log("Send remain card")
-      } else {
-        const response = await client.replyMessage(
-          event.replyToken,
-          message("ทวนการ์ดวันนี้ครบแล้ว🎉")
-        );
-      }
+      await sendRemainCard(event, deck);
     }
   }
   return event;
-}
-
-const pushImg = async() => {
-  const response = await client.broadcast(carousel);
 }
 
 app.listen(port, () => {

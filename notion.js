@@ -33,6 +33,31 @@ const modifiedData = (data) => {
     return property;
 };
 
+const updateSuspend = async (pageId) => {
+
+    const config = {
+        method: "patch",
+        url: `https://api.notion.com/v1/pages/${pageId}`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16",
+            "Content-type": "application/json",
+        },
+        data: JSON.stringify({
+            properties: {
+                status: {
+                    select: {
+                        name: "suspend",
+                    },
+                }
+            },
+        }),
+    };
+
+    const res = await axios(config);
+    return res;
+};
+
 const updateCard = async (card) => {
     const pageId = card.page_id;
     const date = card.date;
@@ -206,5 +231,6 @@ module.exports = {
     updateCard,
     getAllCard,
     retriveDeck,
-    getDeckCard
+    getDeckCard,
+    updateSuspend
 };
