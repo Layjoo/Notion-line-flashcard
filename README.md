@@ -5,4 +5,4 @@
 - Push flashcard with message command "open card"
 - Create new card with notion data base.
 - Using Anki flashcard algorithm. (again hard good easy)
-- Request get function /pushcard (you can intregrate with this ULR via making auto ping to this URL every time you want)
+- "/pushcard" endpoint for auto sending daily flashcard. you can intregrate with this endpoint via making auto ping to this URL every time you want. (Recommend using with google app script)
