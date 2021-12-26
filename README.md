@@ -1,7 +1,7 @@
 ﻿# Notion-line-Flashcard
 > Turn line messenger to a flashcard application via Notion and line bot API.
 
-I build this for increasing abillity to recall information that I don't want to forget (such as my lecture exam).
+I build this for increasing my abillity to recall information that I don't want to forget (such as my lecture exam).
 If you don't familiar with flashcard or don't know how this thing work, I recommed to read this article https://ncase.me/remember/.
 
 ## Example
