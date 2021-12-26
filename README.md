@@ -1,5 +1,5 @@
 ﻿# Notion-line-Flashcard
-> Make line messenger to a flashcard application
+> Turn line messenger to a flashcard application
 
 ## Feature
 - Push flashcard with message command "open card"
