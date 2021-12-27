@@ -216,18 +216,35 @@ const pushcard = async (deck = "random", eventId = null) => {
     }
 
     //get front side of card
-    const front = card.front;
+    const front = card.front || null;
     const pageId = card.page_id;
-    const message = sendCard(front, pageId, deck)
+    const frontImg = card.front_image || null;
+
+    //set image for front card
+    let replyMessage;
+    if(front !== null && frontImg !== null){
+      const frontMessage = sendCard(front, pageId, deck)
+      const carousel = carouselImg(frontImg);
+      replyMessage = [carousel, frontMessage]
+    }else if(front !== null && frontImg == null){
+      replyMessage = sendCard(front, pageId, deck);
+    }else if(front == null && frontImg !== null){
+      const frontMessage = sendCard("ตอบคำถามจากรูปด้านบน", pageId, deck);
+      const carousel = carouselImg(frontImg);
+      replyMessage = [carousel, frontMessage];
+    }else{
+      const frontMessage = message("การ์ดผิดพลาด ไม่มีคำถาม");
+      replyMessage = frontMessage
+    }
 
     //push notify
     if (eventId !== null) {
       const response = await client.replyMessage(
         eventId,
-        message
+        replyMessage
       )
     } else {
-      const response = await client.broadcast(message);
+      const response = await client.broadcast(replyMessage);
       return response;
     }
   } else {
@@ -329,21 +346,29 @@ async function handleEvent(event) {
     }
     const filterCard = getCard.filter(card => card.page_id == pageId)
     const card = filterCard[0] || {};
-    const back = card.back || "";
-    const image = card.image || null;
+    const back = card.back || null;
+    const backImg = card.back_image || null;
 
     if (input == "back") {
       //send answer
-      let message;
-      if(image !== null){
-        const carousel = carouselImg(image);
-        message = [carousel, sendBack(back, card, deck)]
+      let replyMessage;
+      if(back !== null && backImg !== null){
+        const backMessage = sendBack(back, card, deck);
+        const carousel = carouselImg(backImg);
+        replyMessage = [carousel, backMessage];
+      }else if(back !== null && backImg == null){
+        replyMessage = sendBack(back, card, deck);
+      }else if(back == null && backImg !== null){
+        const backMessage = sendBack("คำตอบจากภาพ", card, deck);
+        const carousel = carouselImg(backImg);
+        replyMessage = [carousel, backMessage];
       }else{
-        message = sendBack(back, card, deck);
+        replyMessage = message("การ์ดผิดพลาด ไม่มีคำตอบ");
       }
+
       const response = await client.replyMessage(
         event.replyToken,
-        message
+        replyMessage
       );
       console.log("Send back card")
     } else {

@@ -21,7 +21,14 @@ const modifiedData = (data) => {
                 data.properties.current.rich_text[0].plain_text,
             ease: data.properties.ease.rich_text[0] &&
                 data.properties.ease.rich_text[0].plain_text,
-            image: data.properties.image.files[0] && data.properties.image.files.map(file=>{
+            back_image: data.properties["back image"].files[0] && data.properties["back image"].files.map(file=>{
+                if(file.type == "file"){
+                    return file.file.url
+                }else{
+                    return file.name;
+                }
+            }),
+            front_image: data.properties["front image"].files[0] && data.properties["front image"].files.map(file=>{
                 if(file.type == "file"){
                     return file.file.url
                 }else{
@@ -213,18 +220,12 @@ const retriveDeck = async (propertyName) => {
 //                         equals: "enable",
 //                     },
 //                 }, ],
-//             }
+//             },
 //         })
 //     }
 
 //     const res = await axios(config);
-//     console.log(res.data.results[0].properties.picture.files.map(file=>{
-//         if(file.type == "file"){
-//             return file.file.url
-//         }else{
-//             return file.name;
-//         }
-//     }));
+//     console.log(res.data.results[0].properties.front.rich_text[0])
 // })();
 
 module.exports = {

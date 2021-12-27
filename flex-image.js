@@ -26,7 +26,7 @@ const carouselImg = (images) => {
         "contents": {
             "type": "carousel",
             "contents": []
-        }
+        },
     }
 
     images.forEach((image) => {
