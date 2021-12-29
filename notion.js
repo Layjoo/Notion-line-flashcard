@@ -226,10 +226,10 @@ const clozeCardModified = (data) => {
     }
 
     if(cloze.length!==0){
-        const frontCard = text.replace(/\{cloze\d\}/g, ".......")
+        const frontCard = text.replace(/\{cloze\d\}/g, "______")
         let backCard = text;
         cloze.forEach(cloze=>{
-            backCard = backCard.replace(/\{cloze\d\}/, `..${cloze}..`);
+            backCard = backCard.replace(/\{cloze\d\}/, `__${cloze}__`);
         })
         return {
             "front": frontCard,
