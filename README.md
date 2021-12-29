@@ -10,7 +10,7 @@ If you don't familiar with flashcard or don't know how this thing work, I recomm
 ## Feature
 - Push flashcard with command message "open card".
 - Create new card with Notion database.
-- Add frontside and backside of your card, and you can also add a picture on backside.
+- Add frontside and backside of your card, and you can also add a picture on frontside and backside.
 - Using Anki flashcard algorithm. (again, hard, good, easy)
 - You can suspend card that you don't need anymore.
 - "/pushcard" endpoint for auto sending daily flashcard. you can intregrate with this endpoint via making auto ping to this URL every time you want. (Recommend using with google app script)
