@@ -18,5 +18,5 @@ If you don't familiar with flashcard or don't know how this thing work, I recomm
 
 ## Setting flashcard database
 Setting your flashcard with Notion database.
-![image](https://user-images.githubusercontent.com/92264095/147410771-3bb874f1-2694-40d4-866a-25ecb7c43877.png)
+![image](https://user-images.githubusercontent.com/92264095/147686256-c22efb61-99d1-440d-9d9e-3852c2589f0b.png)
 
