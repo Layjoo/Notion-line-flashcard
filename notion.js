@@ -10,25 +10,25 @@ const today = date.toISOString().slice(0, 10);
 
 const modifiedData = (data) => {
     const property = data.map((data) => {
-        return {
-            page_id: data.id.replace(/-/g, ""),
-            front: data.properties.front.rich_text[0] &&
+        const card =  {
+            "page_id": data.id.replace(/-/g, ""),
+            "front": data.properties.front.rich_text[0] &&
                 data.properties.front.rich_text[0].plain_text,
-            back: data.properties.back.rich_text[0] &&
+            "back": data.properties.back.rich_text[0] &&
                 data.properties.back.rich_text[0].plain_text,
-            date: data.properties.date.date && data.properties.date.date.start,
-            current: data.properties.current.rich_text[0] &&
+            "date": data.properties.date.date && data.properties.date.date.start,
+            "current": data.properties.current.rich_text[0] &&
                 data.properties.current.rich_text[0].plain_text,
-            ease: data.properties.ease.rich_text[0] &&
+            "ease": data.properties.ease.rich_text[0] &&
                 data.properties.ease.rich_text[0].plain_text,
-            back_image: data.properties["back image"].files[0] && data.properties["back image"].files.map(file=>{
+            "back_image": data.properties["back image"].files[0] && data.properties["back image"].files.map(file=>{
                 if(file.type == "file"){
                     return file.file.url
                 }else{
                     return file.name;
                 }
             }),
-            front_image: data.properties["front image"].files[0] && data.properties["front image"].files.map(file=>{
+            "front_image": data.properties["front image"].files[0] && data.properties["front image"].files.map(file=>{
                 if(file.type == "file"){
                     return file.file.url
                 }else{
@@ -36,6 +36,15 @@ const modifiedData = (data) => {
                 }
             })
         };
+        
+        //check if front has cloze 
+        const isCloze = clozeCardModified(data);
+        if(isCloze){
+            const {front, back} = isCloze;
+            card.front = front;
+            card.back = back;
+        }
+        return card;
     });
     return property;
 };
@@ -203,6 +212,32 @@ const retriveDeck = async (propertyName) => {
     return options;
 }
 
+const clozeCardModified = (data) => {
+    const textArr = data.properties.front.rich_text;
+    const cloze = [];
+    let text = "";
+    for(let i=0; i<textArr.length; i++){
+        if(textArr[i].annotations.code == true){
+            cloze.push(textArr[i].plain_text);
+            text += `{cloze${cloze.length}}`;
+        }else{
+            text += textArr[i].plain_text
+        }
+    }
+
+    if(cloze.length!==0){
+        const frontCard = text.replace(/\{cloze\d\}/g, ".......")
+        let backCard = text;
+        cloze.forEach(cloze=>{
+            backCard = backCard.replace(/\{cloze\d\}/, `..${cloze}..`);
+        })
+        return {
+            "front": frontCard,
+            "back": backCard
+        }
+    }
+}
+
 // (async () => {
 //     const config = {
 //         method: "post",
@@ -217,15 +252,32 @@ const retriveDeck = async (propertyName) => {
 //                 and: [{
 //                     property: "status",
 //                     select: {
-//                         equals: "enable",
+//                         equals: "test",
 //                     },
 //                 }, ],
 //             },
 //         })
 //     }
 
+//     //cloze card testing
 //     const res = await axios(config);
-//     console.log(res.data.results[0].properties.front.rich_text[0])
+//     const textArr = res.data.results.map(result => result.properties.front.rich_text)[0];
+//     const cloze = [];
+//     let text = "";
+//     for(let i=0; i<textArr.length; i++){
+//         if(textArr[i].annotations.code == true){
+//             cloze.push(textArr[i].plain_text);
+//             text += `{cloze${cloze.length}}`;
+//         }else{
+//             text += textArr[i].plain_text
+//         }
+//     }
+//     console.log(text)
+//     console.log(cloze)
+//     cloze.forEach(cloze=>{
+//         text = text.replace(/\{cloze\d\}/, cloze);
+//     })
+//     console.log(text)
 // })();
 
 module.exports = {
