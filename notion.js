@@ -34,7 +34,8 @@ const modifiedData = (data) => {
                 }else{
                     return file.name;
                 }
-            })
+            }),
+            "option": data.properties.option && data.properties.option.select.name
         };
         
         //check if front has cloze 
@@ -261,23 +262,8 @@ const clozeCardModified = (data) => {
 
 //     //cloze card testing
 //     const res = await axios(config);
-//     const textArr = res.data.results.map(result => result.properties.front.rich_text)[0];
-//     const cloze = [];
-//     let text = "";
-//     for(let i=0; i<textArr.length; i++){
-//         if(textArr[i].annotations.code == true){
-//             cloze.push(textArr[i].plain_text);
-//             text += `{cloze${cloze.length}}`;
-//         }else{
-//             text += textArr[i].plain_text
-//         }
-//     }
-//     console.log(text)
-//     console.log(cloze)
-//     cloze.forEach(cloze=>{
-//         text = text.replace(/\{cloze\d\}/, cloze);
-//     })
-//     console.log(text)
+//     const results = res.data.results[0].properties.option.select.name;
+//     console.log(results)
 // })();
 
 module.exports = {

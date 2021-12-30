@@ -219,21 +219,29 @@ const pushcard = async (deck = "random", eventId = null) => {
     const front = card.front || null;
     const pageId = card.page_id;
     const frontImg = card.front_image || null;
+    const option = card.option || null;
+
+    //check quiz card
+    let frontMessage;
+    if(option == "quiz"){
+      frontMessage = sendChoice(front, pageId, deck)
+    }else{
+      frontMessage = sendCard(front, pageId, deck)
+    }
 
     //set image for front card
     let replyMessage;
     if(front !== null && frontImg !== null){
-      const frontMessage = sendCard(front, pageId, deck)
       const carousel = carouselImg(frontImg);
       replyMessage = [carousel, frontMessage]
     }else if(front !== null && frontImg == null){
-      replyMessage = sendCard(front, pageId, deck);
+      replyMessage = frontMessage;
     }else if(front == null && frontImg !== null){
-      const frontMessage = sendCard("ตอบคำถามจากรูปด้านบน", pageId, deck);
+      frontMessage = sendCard("ตอบคำถามจากรูปด้านบน", pageId, deck);
       const carousel = carouselImg(frontImg);
       replyMessage = [carousel, frontMessage];
     }else{
-      const frontMessage = message("การ์ดผิดพลาด ไม่มีคำถาม");
+      frontMessage = message("การ์ดผิดพลาด ไม่มีคำถาม");
       replyMessage = frontMessage
     }
 
@@ -263,6 +271,42 @@ const pushcard = async (deck = "random", eventId = null) => {
     }
     return "No today card";
   }
+}
+
+//for quiz card
+const checkCorrectAnswer = (userAnswer, back) => {
+  //compare user answer with answer on the back of the card
+  if(userAnswer == back){
+    return "ตอบถูก👍🏻"
+  }else{
+    return `ตอบผิด❌ ข้อที่ถูกคือข้อ ${back}`
+  }
+}
+
+const sendChoice = (displayText, pageId, deck) => {
+  //quickreply for choice
+  const quickReply = {
+    type: "text",
+    text: displayText,
+    quickReply: {
+      items: [],
+    },
+  };
+
+  //add choice
+  for(let i = 1; i<=5; i++){
+    quickReply.quickReply.items.push({
+      type: "action",
+      action: {
+        type: "postback",
+        label: `ข้อที่ ${i}`,
+        data: `{"pageId": "${pageId}", "input": "choice", "answer": "${i}", "deck": "${deck}"}`,
+        displayText: `ข้อที่ ${i}`,
+      },
+    })
+  }
+
+  return quickReply;
 }
 
 app.get('/pushcard', async (req, res) => {
@@ -348,6 +392,19 @@ async function handleEvent(event) {
     const card = filterCard[0] || {};
     const back = card.back || null;
     const backImg = card.back_image || null;
+
+    if (input == "choice"){
+      //send correct answer
+      const correctAnswer = checkCorrectAnswer(data.answer, back);
+      const replyMessage = sendBack(correctAnswer, card, deck);
+      
+      const response = await client.replyMessage(
+        event.replyToken,
+        replyMessage
+      );
+      console.log("Send correct quiz card")
+      return event;
+    }
 
     if (input == "back") {
       //send answer
