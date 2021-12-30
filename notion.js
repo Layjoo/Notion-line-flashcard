@@ -35,7 +35,7 @@ const modifiedData = (data) => {
                     return file.name;
                 }
             }),
-            "option": data.properties.option && data.properties.option.select.name
+            "option": data.properties.option.select && data.properties.option.select.name
         };
         
         //check if front has cloze 
