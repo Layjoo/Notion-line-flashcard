@@ -45,6 +45,14 @@ const modifiedData = (data) => {
             card.front = front;
             card.back = back;
         }
+
+        //check for card tag (subdecks)
+        // const hasTag = data.properties.tag.select;
+        // if(hasTag){
+        //     const tag = hasTag.name;
+        //     card.tag = tag;
+        // }
+
         return card;
     });
     return property;
@@ -196,6 +204,107 @@ const getDeckCard = async (deck) => {
     return cardArr;
 };
 
+const getTagCard = async (tag, deck) => {
+    const config = {
+        method: "post",
+        url: `https://api.notion.com/v1/databases/${database}/query`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16",
+            "Content-type": "application/json",
+        },
+    };
+
+    //set request body
+    const data = {
+        filter: {
+            and: [{
+                property: "status",
+                select: {
+                    equals: "enable",
+                },
+            }, ],
+        },
+        sorts: [{
+            "timestamp": "last_edited_time",
+            "direction": "ascending"
+        }]
+    }
+
+    //check tag
+    if (tag) {
+        data.filter.and.push({
+            property: "deck",
+            select: {
+                equals: deck
+            }
+        })
+
+        data.filter.and.push({
+            property: "tag",
+            select: {
+                equals: tag
+            }
+        })
+    }
+
+    config.data = JSON.stringify(data);
+
+    const res = await axios(config);
+    const page = res.data.results;
+    const cardArr = modifiedData(page);
+    return cardArr;
+}
+
+const retriveTag = async (deck) => {
+    const config = {
+        method: "post",
+        url: `https://api.notion.com/v1/databases/${database}/query`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16",
+            "Content-type": "application/json",
+        },
+    };
+
+    //set request body
+    const data = {
+        filter: {
+            and: [{
+                property: "status",
+                select: {
+                    equals: "enable",
+                },
+            }, ],
+        },
+        sorts: [{
+            "timestamp": "last_edited_time",
+            "direction": "ascending"
+        }]
+    }
+
+    //check deck
+    if (deck) {
+        data.filter.and.push({
+            property: "deck",
+            select: {
+                equals: deck
+            }
+        })
+    }
+
+    config.data = JSON.stringify(data);
+
+    const res = await axios(config);
+    const page = res.data.results;
+    const tag = [...new Set(page.map(page=>{
+        if(page.properties.tag.select !== null){
+            return page.properties.tag.select.name
+        }
+    }))]
+    return tag.filter(tag=>tag!==undefined);
+};
+
 const retriveDeck = async (propertyName) => {
     const config = {
         method: 'get',
@@ -240,29 +349,7 @@ const clozeCardModified = (data) => {
 }
 
 // (async () => {
-//     const config = {
-//         method: "post",
-//         url: `https://api.notion.com/v1/databases/${database}/query`,
-//         headers: {
-//             Authorization: `Bearer ${notionToken}`,
-//             "Notion-Version": "2021-08-16",
-//             "Content-type": "application/json",
-//         },
-//         data: JSON.stringify({
-//             filter: {
-//                 and: [{
-//                     property: "status",
-//                     select: {
-//                         equals: "test",
-//                     },
-//                 }, ],
-//             },
-//         })
-//     }
-
-//     //cloze card testing
-//     const res = await axios(config);
-//     const results = res.data.results[0].properties.option.select.name;
+//     const results = await retriveTag("Vocabulary🚀");
 //     console.log(results)
 // })();
 
@@ -271,5 +358,7 @@ module.exports = {
     getAllCard,
     retriveDeck,
     getDeckCard,
-    updateSuspend
+    updateSuspend,
+    retriveTag,
+    getTagCard
 };

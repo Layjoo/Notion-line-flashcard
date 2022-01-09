@@ -4,7 +4,9 @@ const {
   getAllCard,
   retriveDeck,
   getDeckCard,
-  updateSuspend
+  updateSuspend,
+  retriveTag,
+  getTagCard
 } = require("./notion");
 const {
   setNewInterval
@@ -13,6 +15,7 @@ const {
   carouselImg
 } = require("./flex-image")
 const line = require("@line/bot-sdk");
+const { compileETag } = require("express/lib/utils");
 const app = require('express')();
 const port = process.env.PORT || 3000;
 const today = new Date(Date.now())
@@ -25,7 +28,7 @@ const config = {
 
 const client = new line.Client(config);
 
-const sendBack = (displayText, _card, deck) => {
+const sendBack = (displayText, _card, deck, tag) => {
   const pageId = _card.page_id;
   //calculate interval prediction
   const easyPredicted = setNewInterval(_card, "easy").current;
@@ -42,7 +45,7 @@ const sendBack = (displayText, _card, deck) => {
           action: {
             type: "postback",
             label: `again💀`,
-            data: `{"pageId": "${pageId}", "input": "again", "deck":"${deck}"}`,
+            data: `{"pageId": "${pageId}", "input": "again", "deck":"${deck}", "tag":"${tag}"}`,
             displayText: "again",
           },
         },
@@ -51,7 +54,7 @@ const sendBack = (displayText, _card, deck) => {
           action: {
             type: "postback",
             label: `hard😐 (${hardPredicted} วัน)`,
-            data: `{"pageId": "${pageId}", "input": "hard", "deck":"${deck}"}`,
+            data: `{"pageId": "${pageId}", "input": "hard", "deck":"${deck}", "tag":"${tag}"}`,
             displayText: "hard",
           },
         },
@@ -60,7 +63,7 @@ const sendBack = (displayText, _card, deck) => {
           action: {
             type: "postback",
             label: `good🙂 (${goodPredicted} วัน)`,
-            data: `{"pageId": "${pageId}", "input": "good", "deck":"${deck}"}`,
+            data: `{"pageId": "${pageId}", "input": "good", "deck":"${deck}", "tag":"${tag}"}`,
             displayText: "good",
           },
         },
@@ -69,7 +72,7 @@ const sendBack = (displayText, _card, deck) => {
           action: {
             type: "postback",
             label: `easy🤣 (${easyPredicted} วัน)`,
-            data: `{"pageId": "${pageId}", "input": "easy", "deck":"${deck}"}`,
+            data: `{"pageId": "${pageId}", "input": "easy", "deck":"${deck}", "tag":"${tag}"}`,
             displayText: "easy",
           },
         },
@@ -78,7 +81,7 @@ const sendBack = (displayText, _card, deck) => {
           action: {
             type: "postback",
             label: `suspend🔥`,
-            data: `{"pageId": "${pageId}", "input": "suspend", "deck":"${deck}"}`,
+            data: `{"pageId": "${pageId}", "input": "suspend", "deck":"${deck}", "tag":"${tag}"}`,
             displayText: "ระงับการ์ด",
           },
         }
@@ -87,7 +90,7 @@ const sendBack = (displayText, _card, deck) => {
   };
 };
 
-const sendCard = (displayText, pageId, deck) => {
+const sendCard = (displayText, pageId, deck, tag) => {
   return {
     type: "text",
     text: displayText,
@@ -97,7 +100,7 @@ const sendCard = (displayText, pageId, deck) => {
         action: {
           type: "postback",
           label: "เฉลย",
-          data: `{"pageId": "${pageId}", "input": "back", "deck": "${deck}"}`,
+          data: `{"pageId": "${pageId}", "input": "back", "deck": "${deck}", "tag": "${tag}"}`,
           displayText: "เฉลย",
         },
       }, ],
@@ -105,7 +108,7 @@ const sendCard = (displayText, pageId, deck) => {
   };
 };
 
-const sendDecks = (displayText, decks) => {
+const sendDecks = async(displayText, decks) => {
   const quickReply = {
     type: "text",
     text: displayText,
@@ -123,12 +126,17 @@ const sendDecks = (displayText, decks) => {
   };
 
   for (let i in decks) {
+    const hadTag = await retriveTag(decks[i])
+    let tag = false;
+    if(hadTag.length !== 0){
+      tag = true;
+    }
     quickReply.quickReply.items.push({
       type: "action",
       action: {
         type: "postback",
         label: decks[i],
-        data: `{"selectDeck": "${decks[i]}"}`,
+        data: `{"selectDeck": "${decks[i]}", "had_tag": ${tag}}`,
         displayText: decks[i],
       },
     })
@@ -137,7 +145,39 @@ const sendDecks = (displayText, decks) => {
   return quickReply;
 }
 
-const sendContinue = (remain, deck) => {
+const sendTag = (displayText, deck, tags) => {
+  const quickReply = {
+    type: "text",
+    text: displayText,
+    quickReply: {
+      items: [{
+        type: "action",
+        action: {
+          type: "postback",
+          label: "สุ่มการ์ด",
+          data: `{"selectTag": "random", "deck": "${deck}"}`,
+          displayText: "สุ่มการ์ด",
+        }
+      }],
+    },
+  };
+
+  for (let i in tags) {
+    quickReply.quickReply.items.push({
+      type: "action",
+      action: {
+        type: "postback",
+        label: tags[i],
+        data: `{"selectTag": "${tags[i]}", "deck": "${deck}"}`,
+        displayText: tags[i],
+      },
+    })
+  }
+
+  return quickReply;
+}
+
+const sendContinue = (remain, deck, tag) => {
   return {
     type: "text",
     text: `เหลือการ์ดวันนี้อีก ${remain} ใบ`,
@@ -147,7 +187,7 @@ const sendContinue = (remain, deck) => {
           action: {
             type: "postback",
             label: "เปิด",
-            data: `{"input": "next", "deck": "${deck}"}`,
+            data: `{"input": "next", "deck": "${deck}", "tag": "${tag}"}`,
             displayText: "เปิด",
           },
         },
@@ -165,20 +205,28 @@ const sendContinue = (remain, deck) => {
   };
 }
 
-const sendRemainCard = async(event, deck) => {
+const sendRemainCard = async(event, deck, tag=null) => {
   //send remain card
   let cardArr;
-  if (deck == "random") {
-    cardArr = await getAllCard();
-  } else {
-    cardArr = await getDeckCard(deck);
+  if(tag==null){
+    if (deck == "random") {
+      cardArr = await getAllCard();
+    } else {
+      cardArr = await getDeckCard(deck);
+    }
+  }else{
+    if (deck == "random") {
+      cardArr = await getDeckCard(deck);
+    } else {
+      cardArr = await getTagCard(tag, deck);
+    }
   }
   const todayCard = cardArr.filter(card => new Date(card.date).getTime() < today.getTime())
   const remain = todayCard.length;
   if (remain !== 0) {
     const response = await client.replyMessage(
       event.replyToken,
-      sendContinue(remain, deck)
+      sendContinue(remain, deck, tag)
     );
     console.log("Send remain card")
   } else {
@@ -196,19 +244,28 @@ const message = (message) => {
   };
 };
 
-const pushcard = async (deck = "random", eventId = null) => {
+const pushcard = async (deck = "random", eventId = null, tag = false) => {
 
   let cardArr;
-  if (deck == "random") {
-    cardArr = await getAllCard();
-  } else {
-    cardArr = await getDeckCard(deck);
+  if(tag == false){
+    if (deck == "random") {
+      cardArr = await getAllCard();
+    } else {
+      cardArr = await getDeckCard(deck);
+    }
+  }else{
+    if (deck == "random") {
+      cardArr = await getDeckCard(deck);
+    } else {
+      cardArr = await getTagCard(tag, deck);
+    }
   }
 
   const todayCard = cardArr.filter(card => new Date(card.date).getTime() < today.getTime())
 
   if (todayCard.length !== 0) {
     let card;
+    //pick 1 card to show
     if (deck == "random") {
       card = todayCard[Math.floor(Math.random() * todayCard.length)]
     } else {
@@ -224,9 +281,9 @@ const pushcard = async (deck = "random", eventId = null) => {
     //check quiz card
     let frontMessage;
     if(option == "quiz"){
-      frontMessage = sendChoice(front, pageId, deck)
+      frontMessage = sendChoice(front, pageId, deck, tag)
     }else{
-      frontMessage = sendCard(front, pageId, deck)
+      frontMessage = sendCard(front, pageId, deck, tag)
     }
 
     //set image for front card
@@ -237,7 +294,7 @@ const pushcard = async (deck = "random", eventId = null) => {
     }else if(front !== null && frontImg == null){
       replyMessage = frontMessage;
     }else if(front == null && frontImg !== null){
-      frontMessage = sendCard("ตอบคำถามจากรูปด้านบน", pageId, deck);
+      frontMessage = sendCard("ตอบคำถามจากรูปด้านบน", pageId, deck, tag);
       const carousel = carouselImg(frontImg);
       replyMessage = [carousel, frontMessage];
     }else{
@@ -283,7 +340,7 @@ const checkCorrectAnswer = (userAnswer, back) => {
   }
 }
 
-const sendChoice = (displayText, pageId, deck) => {
+const sendChoice = (displayText, pageId, deck, tag) => {
   //quickreply for choice
   const quickReply = {
     type: "text",
@@ -300,7 +357,7 @@ const sendChoice = (displayText, pageId, deck) => {
       action: {
         type: "postback",
         label: `ข้อที่ ${i}`,
-        data: `{"pageId": "${pageId}", "input": "choice", "answer": "${i}", "deck": "${deck}"}`,
+        data: `{"pageId": "${pageId}", "input": "choice", "answer": "${i}", "deck": "${deck}", "tag": "${tag}"}`,
         displayText: `ข้อที่ ${i}`,
       },
     })
@@ -335,7 +392,7 @@ async function handleEvent(event) {
         const decks = await retriveDeck("deck");
 
         //user select decks
-        const message = sendDecks("เลือกหมวด", decks);
+        const message = await sendDecks("เลือกหมวด", decks);
         const response = await client.replyMessage(
           event.replyToken,
           message
@@ -347,21 +404,41 @@ async function handleEvent(event) {
 
   //check for postback
   if (event.type == 'postback') {
+    console.log(event.postback.data)
     const data = JSON.parse(event.postback.data);
     const pageId = data.pageId;
     const input = data.input
     const deck = data.deck || null;
+    const hadTag = data["had_tag"]
+    const tag = data.tag || null;
 
     //push card when select deck
     if (data.selectDeck) {
       const deck = data.selectDeck;
+      console.log(hadTag)
+      if(hadTag){
+        console.log("get tag");
+        const tagArr = await retriveTag(deck);
+        const message = sendTag("เลือก Subdeck", deck, tagArr)
+        const response = await client.replyMessage(
+          event.replyToken,
+          message
+        );
+        return response;
+      }
       const response = await pushcard(deck, event.replyToken);
+      return response;
+    }
+
+    if (data.selectTag) {
+      const deck = data.deck;
+      const response = await pushcard(deck, event.replyToken, data.selectTag)
       return response;
     }
 
     if (input == "next") {
       //send new question
-      const response = await pushcard(deck, event.replyToken)
+      const response = await pushcard(deck, event.replyToken, tag)
       console.log("send new question")
       return response;
     }
@@ -376,17 +453,25 @@ async function handleEvent(event) {
       console.log("card is suspended")
 
       //send remain card
-      await sendRemainCard(event, deck);
+      await sendRemainCard(event, deck, tag);
       console.log("send remain card")
       return event;
     }
 
     //get notion card
     let getCard;
-    if (deck == "random") {
-      getCard = await getAllCard();
-    } else {
-      getCard = await getDeckCard(deck);
+    if(tag==null){
+      if (deck == "random") {
+        getCard = await getAllCard();
+      } else {
+        getCard = await getDeckCard(deck);
+      }
+    }else{
+      if (deck == "random") {
+        getCard = await getDeckCard(deck);
+      } else {
+        getCard = await getTagCard(tag, deck);
+      }
     }
     const filterCard = getCard.filter(card => card.page_id == pageId)
     const card = filterCard[0] || {};
@@ -396,7 +481,7 @@ async function handleEvent(event) {
     if (input == "choice"){
       //send correct answer
       const correctAnswer = checkCorrectAnswer(data.answer, back);
-      const replyMessage = sendBack(correctAnswer, card, deck);
+      const replyMessage = sendBack(correctAnswer, card, deck, tag);
       
       const response = await client.replyMessage(
         event.replyToken,
@@ -410,13 +495,13 @@ async function handleEvent(event) {
       //send answer
       let replyMessage;
       if(back !== null && backImg !== null){
-        const backMessage = sendBack(back, card, deck);
+        const backMessage = sendBack(back, card, deck, tag);
         const carousel = carouselImg(backImg);
         replyMessage = [carousel, backMessage];
       }else if(back !== null && backImg == null){
-        replyMessage = sendBack(back, card, deck);
+        replyMessage = sendBack(back, card, deck, tag);
       }else if(back == null && backImg !== null){
-        const backMessage = sendBack("คำตอบจากภาพ", card, deck);
+        const backMessage = sendBack("คำตอบจากภาพ", card, deck, tag);
         const carousel = carouselImg(backImg);
         replyMessage = [carousel, backMessage];
       }else{
@@ -438,7 +523,7 @@ async function handleEvent(event) {
       console.log("Update Success");
 
       //send remain card
-      await sendRemainCard(event, deck);
+      await sendRemainCard(event, deck, tag);
     }
   }
   return event;
