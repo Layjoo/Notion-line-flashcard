@@ -126,17 +126,12 @@ const sendDecks = async(displayText, decks) => {
   };
 
   for (let i in decks) {
-    const hadTag = await retriveTag(decks[i])
-    let tag = false;
-    if(hadTag.length !== 0){
-      tag = true;
-    }
     quickReply.quickReply.items.push({
       type: "action",
       action: {
         type: "postback",
         label: decks[i],
-        data: `{"selectDeck": "${decks[i]}", "had_tag": ${tag}}`,
+        data: `{"selectDeck": "${decks[i]}"}`,
         displayText: decks[i],
       },
     })
@@ -409,15 +404,14 @@ async function handleEvent(event) {
     const pageId = data.pageId;
     const input = data.input
     const deck = data.deck || null;
-    const hadTag = data["had_tag"]
     const tag = data.tag || null;
 
     //push card when select deck
     if (data.selectDeck) {
       const deck = data.selectDeck;
-      if(hadTag){
+      const tagArr = await retriveTag(deck)
+      if(tagArr.length!==0){
         console.log("get tag");
-        const tagArr = await retriveTag(deck);
         const message = sendTag("เลือก Subdeck", deck, tagArr)
         const response = await client.replyMessage(
           event.replyToken,
