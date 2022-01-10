@@ -228,7 +228,7 @@ const sendRemainCard = async(event, deck, tag=null) => {
       event.replyToken,
       sendContinue(remain, deck, tag)
     );
-    console.log("Send remain card")
+    console.log("send remain card")
   } else {
     const response = await client.replyMessage(
       event.replyToken,
@@ -313,7 +313,7 @@ const pushcard = async (deck = "random", eventId = null, tag = false) => {
       return response;
     }
   } else {
-    console.log("No today card")
+    console.log("no today card")
     if (eventId !== null) {
       let text;
       if (deck == "random") {
@@ -415,7 +415,6 @@ async function handleEvent(event) {
     //push card when select deck
     if (data.selectDeck) {
       const deck = data.selectDeck;
-      console.log(hadTag)
       if(hadTag){
         console.log("get tag");
         const tagArr = await retriveTag(deck);
@@ -460,7 +459,7 @@ async function handleEvent(event) {
 
     //get notion card
     let getCard;
-    if(tag==null){
+    if(tag=="false"){
       if (deck == "random") {
         getCard = await getAllCard();
       } else {
@@ -487,7 +486,7 @@ async function handleEvent(event) {
         event.replyToken,
         replyMessage
       );
-      console.log("Send correct quiz card")
+      console.log("send correct quiz card")
       return event;
     }
 
@@ -512,7 +511,7 @@ async function handleEvent(event) {
         event.replyToken,
         replyMessage
       );
-      console.log("Send back card")
+      console.log("send back card")
     } else {
       //if user press good hard easy or again
       //set new interval
@@ -520,7 +519,7 @@ async function handleEvent(event) {
 
       //update card status to notion
       await updateCard(modifiedCard)
-      console.log("Update Success");
+      console.log("update Success");
 
       //send remain card
       await sendRemainCard(event, deck, tag);
