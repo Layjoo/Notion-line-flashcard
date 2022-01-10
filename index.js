@@ -397,7 +397,7 @@ async function handleEvent(event) {
           event.replyToken,
           message
         );
-        break;
+        return response;
       default: break;
     }
   }
