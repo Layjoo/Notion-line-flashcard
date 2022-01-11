@@ -200,10 +200,10 @@ const sendContinue = (remain, deck, tag) => {
   };
 }
 
-const sendRemainCard = async(event, deck, tag=null) => {
+const sendRemainCard = async(event, deck, tag) => {
   //send remain card
   let cardArr;
-  if(tag==null){
+  if(tag=="false"){
     if (deck == "random") {
       cardArr = await getAllCard();
     } else {
@@ -239,10 +239,10 @@ const message = (message) => {
   };
 };
 
-const pushcard = async (deck = "random", eventId = null, tag = false) => {
+const pushcard = async (deck = "random", eventId = null, tag = "false") => {
 
   let cardArr;
-  if(tag == false){
+  if(tag == "false"){
     if (deck == "random") {
       cardArr = await getAllCard();
     } else {
