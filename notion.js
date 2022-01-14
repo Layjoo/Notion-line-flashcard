@@ -5,8 +5,6 @@ const {
 } = require("express/lib/response");
 const notionToken = process.env.NOTION_TOKEN;
 const database = process.env.DATABASE;
-let date = new Date(Date.now());
-const today = date.toISOString().slice(0, 10);
 
 const modifiedData = (data) => {
     const property = data.map((data) => {
@@ -45,14 +43,6 @@ const modifiedData = (data) => {
             card.front = front;
             card.back = back;
         }
-
-        //check for card tag (subdecks)
-        // const hasTag = data.properties.tag.select;
-        // if(hasTag){
-        //     const tag = hasTag.name;
-        //     card.tag = tag;
-        // }
-
         return card;
     });
     return property;
@@ -154,8 +144,22 @@ const getAllCard = async () => {
     };
 
     const res = await axios(config);
-    const data = res.data.results;
-    const cardArr = modifiedData(data);
+    const data = res.data;
+    let {has_more, next_cursor, results} = data;
+
+    while(has_more){
+        const configData = JSON.parse(config.data);
+        configData["start_cursor"] = next_cursor;
+        config.data = configData;
+
+        const res = await axios(config);
+        const data = res.data;
+        has_more = data.has_more;
+        next_cursor = data.next_cursor;
+        data.results.forEach(card => results.push(card))
+    }
+
+    const cardArr = modifiedData(results);
     return cardArr;
 };
 
@@ -348,9 +352,25 @@ const clozeCardModified = (data) => {
     }
 }
 
+const getCardfromPageId = async(pageId) => {
+    const config = {
+        method: "get",
+        url: `https://api.notion.com/v1/pages/${pageId}`,
+        headers: {
+            Authorization: `Bearer ${notionToken}`,
+            "Notion-Version": "2021-08-16",
+            "Content-type": "application/json",
+        }
+    };
+
+    const res = await axios(config);
+    const card = modifiedData([res.data])
+    return card;
+}
+
 // (async () => {
-//     const results = await retriveTag("Vocabulary🚀");
-//     console.log(results)
+//     const test = await getAllCard();
+//     console.log(test)
 // })();
 
 module.exports = {
@@ -360,5 +380,6 @@ module.exports = {
     getDeckCard,
     updateSuspend,
     retriveTag,
-    getTagCard
+    getTagCard,
+    getCardfromPageId
 };

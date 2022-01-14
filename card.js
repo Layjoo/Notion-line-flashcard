@@ -3,8 +3,11 @@ const {
 } = require('./notion');
 
 var prompt = require('prompt-sync')();
-let todayObj = new Date(Date.now())
-let today = todayObj.toISOString().slice(0, 10);
+const dateNow = new Date(Date.now())
+const date = dateNow.getDate();
+let today = dateNow.toISOString().slice(0, 8);
+today = today.concat(date)
+today = new Date(today);
 
 const intervalModified = 50;
 const easyBonus = 3;
@@ -17,7 +20,7 @@ const setNewInterval = (card, status) => {
     const ease = parseInt(_card.ease) || startEase;
     let date = _card.date || today;
     date = new Date(date);
-    if (date.getTime() < todayObj.getTime()) {
+    if (date.getTime() < dateNow.getTime()) {
         date = new Date(today);
     }
     let newInterval;

@@ -6,7 +6,8 @@ const {
   getDeckCard,
   updateSuspend,
   retriveTag,
-  getTagCard
+  getTagCard,
+  getCardfromPageId
 } = require("./notion");
 const {
   setNewInterval
@@ -18,7 +19,11 @@ const line = require("@line/bot-sdk");
 const { compileETag } = require("express/lib/utils");
 const app = require('express')();
 const port = process.env.PORT || 3000;
-const today = new Date(Date.now())
+const dateNow = new Date(Date.now())
+const date = dateNow.getDate();
+let today = dateNow.toISOString().slice(0, 8);
+today = today.concat(date)
+today = new Date(today);
 
 //setting line
 const config = {
@@ -28,14 +33,13 @@ const config = {
 
 const client = new line.Client(config);
 
-const sendBack = (displayText, _card, deck, tag) => {
-  const pageId = _card.page_id;
+const sendBack = (displayText, card, deck, tag) => {
+  const pageId = card.page_id;
   //calculate interval prediction
-  const easyPredicted = setNewInterval(_card, "easy").current;
-  const hardPredicted = setNewInterval(_card, "hard").current;
-  const goodPredicted = setNewInterval(_card, "good").current;
+  const easyPredicted = setNewInterval(card, "easy").current;
+  const hardPredicted = setNewInterval(card, "hard").current;
+  const goodPredicted = setNewInterval(card, "good").current;
 
-  const card = JSON.stringify(_card);
   return {
     type: "text",
     text: displayText,
@@ -210,14 +214,16 @@ const sendRemainCard = async(event, deck, tag) => {
       cardArr = await getDeckCard(deck);
     }
   }else{
-    if (deck == "random") {
+    if (tag == "random") {
       cardArr = await getDeckCard(deck);
     } else {
       cardArr = await getTagCard(tag, deck);
     }
   }
-  const todayCard = cardArr.filter(card => new Date(card.date).getTime() < today.getTime())
+  console.log(`all card = ${cardArr.length}`)
+  const todayCard = cardArr.filter(card => new Date(card.date).getTime() <= today.getTime())
   const remain = todayCard.length;
+  console.log(`remain card = ${remain}`)
   if (remain !== 0) {
     const response = await client.replyMessage(
       event.replyToken,
@@ -249,19 +255,20 @@ const pushcard = async (deck = "random", eventId = null, tag = "false") => {
       cardArr = await getDeckCard(deck);
     }
   }else{
-    if (deck == "random") {
+    if (tag == "random") {
       cardArr = await getDeckCard(deck);
     } else {
       cardArr = await getTagCard(tag, deck);
     }
   }
 
-  const todayCard = cardArr.filter(card => new Date(card.date).getTime() < today.getTime())
+  const todayCard = cardArr.filter(card => new Date(card.date).getTime() <= today.getTime())
+  console.log(`today card = ${todayCard.length}`)
 
   if (todayCard.length !== 0) {
     let card;
     //pick 1 card to show
-    if (deck == "random") {
+    if (deck == "random" || tag == "random") {
       card = todayCard[Math.floor(Math.random() * todayCard.length)]
     } else {
       card = todayCard[0];
@@ -412,7 +419,7 @@ async function handleEvent(event) {
       const tagArr = await retriveTag(deck)
       if(tagArr.length!==0){
         console.log("get tag");
-        const message = sendTag("เลือก Subdeck", deck, tagArr)
+        const message = sendTag("เลือกหมวดย่อย", deck, tagArr)
         const response = await client.replyMessage(
           event.replyToken,
           message
@@ -452,20 +459,7 @@ async function handleEvent(event) {
     }
 
     //get notion card
-    let getCard;
-    if(tag=="false"){
-      if (deck == "random") {
-        getCard = await getAllCard();
-      } else {
-        getCard = await getDeckCard(deck);
-      }
-    }else{
-      if (deck == "random") {
-        getCard = await getDeckCard(deck);
-      } else {
-        getCard = await getTagCard(tag, deck);
-      }
-    }
+    let getCard = await getCardfromPageId(pageId);
     const filterCard = getCard.filter(card => card.page_id == pageId)
     const card = filterCard[0] || {};
     const back = card.back || null;
