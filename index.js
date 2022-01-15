@@ -49,7 +49,7 @@ const sendBack = (displayText, card, deck, tag) => {
           action: {
             type: "postback",
             label: `again💀`,
-            data: `{"pageId": "${pageId}", "input": "again", "deck":"${deck}", "tag":"${tag}"}`,
+            data: JSON.stringify({"pageId": pageId, "input": "again", "deck": deck, "tag": tag}),
             displayText: "again",
           },
         },
@@ -58,7 +58,7 @@ const sendBack = (displayText, card, deck, tag) => {
           action: {
             type: "postback",
             label: `hard😐 (${hardPredicted} วัน)`,
-            data: `{"pageId": "${pageId}", "input": "hard", "deck":"${deck}", "tag":"${tag}"}`,
+            data: JSON.stringify({"pageId": pageId, "input": "hard", "deck": deck, "tag": tag}),
             displayText: "hard",
           },
         },
@@ -67,7 +67,7 @@ const sendBack = (displayText, card, deck, tag) => {
           action: {
             type: "postback",
             label: `good🙂 (${goodPredicted} วัน)`,
-            data: `{"pageId": "${pageId}", "input": "good", "deck":"${deck}", "tag":"${tag}"}`,
+            data: JSON.stringify({"pageId": pageId, "input": "good", "deck": deck, "tag": tag}),
             displayText: "good",
           },
         },
@@ -76,7 +76,7 @@ const sendBack = (displayText, card, deck, tag) => {
           action: {
             type: "postback",
             label: `easy🤣 (${easyPredicted} วัน)`,
-            data: `{"pageId": "${pageId}", "input": "easy", "deck":"${deck}", "tag":"${tag}"}`,
+            data: JSON.stringify({"pageId": pageId, "input": "easy", "deck": deck, "tag": tag}),
             displayText: "easy",
           },
         },
@@ -85,7 +85,7 @@ const sendBack = (displayText, card, deck, tag) => {
           action: {
             type: "postback",
             label: `suspend🔥`,
-            data: `{"pageId": "${pageId}", "input": "suspend", "deck":"${deck}", "tag":"${tag}"}`,
+            data: JSON.stringify({"pageId": pageId, "input": "suspend", "deck": deck, "tag": tag}),
             displayText: "ระงับการ์ด",
           },
         }
@@ -205,7 +205,7 @@ const sendContinue = (remain, deck, tag) => {
 }
 
 const sendRemainCard = async(event, deck, tag) => {
-  //send remain card
+  //get card base on user select deck or tag
   let cardArr;
   if(tag=="false"){
     if (deck == "random") {
@@ -221,9 +221,13 @@ const sendRemainCard = async(event, deck, tag) => {
     }
   }
   console.log(`all card = ${cardArr.length}`)
+
+  //check card for today or overdue
   const todayCard = cardArr.filter(card => new Date(card.date).getTime() <= today.getTime())
   const remain = todayCard.length;
   console.log(`remain card = ${remain}`)
+
+  //send remain
   if (remain !== 0) {
     const response = await client.replyMessage(
       event.replyToken,
@@ -233,7 +237,7 @@ const sendRemainCard = async(event, deck, tag) => {
   } else {
     const response = await client.replyMessage(
       event.replyToken,
-      message("ทวนการ์ดวันนี้ครบแล้ว🎉")
+      message("ทวนการ์ดครบแล้ว🎉")
     );
   }
 }
@@ -246,7 +250,8 @@ const message = (message) => {
 };
 
 const pushcard = async (deck = "random", eventId = null, tag = "false") => {
-
+  
+  //get card base on user select deck or tag
   let cardArr;
   if(tag == "false"){
     if (deck == "random") {
@@ -262,6 +267,7 @@ const pushcard = async (deck = "random", eventId = null, tag = "false") => {
     }
   }
 
+  //check card for today or overdue
   const todayCard = cardArr.filter(card => new Date(card.date).getTime() <= today.getTime())
   console.log(`today card = ${todayCard.length}`)
 
@@ -319,16 +325,16 @@ const pushcard = async (deck = "random", eventId = null, tag = "false") => {
     if (eventId !== null) {
       let text;
       if (deck == "random") {
-        text = message("ไม่มีการ์ดวันนี้แล้ว🎉")
+        text = message("ทวนการ์ดวันนี้ครบแล้ว🎉")
       } else {
-        text = message("สำรับนี้ไม่มีการ์ดวันนี้แล้ว🎉")
+        text = message("ทวนการ์ดในสำรับครบแล้ว🎉")
       }
       const response = await client.replyMessage(
         eventId,
         text
       )
     }
-    return "No today card";
+    return "no today card";
   }
 }
 
@@ -342,6 +348,7 @@ const checkCorrectAnswer = (userAnswer, back) => {
   }
 }
 
+//for quiz card
 const sendChoice = (displayText, pageId, deck, tag) => {
   //quickreply for choice
   const quickReply = {
@@ -407,6 +414,7 @@ async function handleEvent(event) {
   //check for postback
   if (event.type == 'postback') {
     console.log(event.postback.data)
+    //get postback data
     const data = JSON.parse(event.postback.data);
     const pageId = data.pageId;
     const input = data.input
@@ -430,6 +438,7 @@ async function handleEvent(event) {
       return response;
     }
 
+    //push card when select tag
     if (data.selectTag) {
       const deck = data.deck;
       const response = await pushcard(deck, event.replyToken, data.selectTag)
