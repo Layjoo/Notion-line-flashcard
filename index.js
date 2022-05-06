@@ -16,7 +16,6 @@ const {
   carouselImg
 } = require("./flex-image")
 const line = require("@line/bot-sdk");
-const { compileETag } = require("express/lib/utils");
 const app = require('express')();
 const port = process.env.PORT || 3000;
 const dateNow = new Date(Date.now())
