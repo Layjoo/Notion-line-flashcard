@@ -127,7 +127,7 @@ const getAllCard = async () => {
             "Notion-Version": "2021-08-16",
             "Content-type": "application/json",
         },
-        data: JSON.stringify({
+        data: {
             filter: {
                 and: [{
                     property: "status",
@@ -140,7 +140,7 @@ const getAllCard = async () => {
                 "timestamp": "last_edited_time",
                 "direction": "ascending"
             }]
-        }),
+        },
     };
 
     const res = await axios(config);
@@ -148,10 +148,7 @@ const getAllCard = async () => {
     let {has_more, next_cursor, results} = data;
 
     while(has_more){
-        const configData = JSON.parse(config.data);
-        configData["start_cursor"] = next_cursor;
-        config.data = configData;
-
+        config.data["start_cursor"] = next_cursor;
         const res = await axios(config);
         const data = res.data;
         has_more = data.has_more;
@@ -367,11 +364,6 @@ const getCardfromPageId = async(pageId) => {
     const card = modifiedData([res.data])
     return card;
 }
-
-// (async () => {
-//     const test = await getAllCard();
-//     console.log(test)
-// })();
 
 module.exports = {
     updateCard,
