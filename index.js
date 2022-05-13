@@ -380,7 +380,8 @@ app.get('/pushcard', async (req, res) => {
 })
 
 app.get('/waking', async (req, res) => {
-  const response = "Sever has awaken...";
+  const response = "Server has woken up...";
+  console.log("Server has woken up...")
   res.send(response);
 })
 
