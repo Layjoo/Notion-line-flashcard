@@ -379,6 +379,11 @@ app.get('/pushcard', async (req, res) => {
   res.send(response);
 })
 
+app.get('/waking', async (req, res) => {
+  const response = "Sever has awaken...";
+  res.send(response);
+})
+
 //web hook, get event when user do somthing with bot
 app.post("/callback", line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))

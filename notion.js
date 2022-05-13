@@ -1,8 +1,5 @@
 require("dotenv").config();
 const axios = require("axios");
-const {
-    json
-} = require("express/lib/response");
 const notionToken = process.env.NOTION_TOKEN;
 const database = process.env.DATABASE;
 
