@@ -317,7 +317,11 @@ const pushcard = async (deck = "random", eventId = null, tag = "false") => {
       )
     } else {
       const earlyMessage = message("เปิดการ์ดอัตโนมัติ")
-      const response = await client.broadcast([earlyMessage, replyMessage]);
+      await client.broadcast(earlyMessage);
+      setTimeout(function() {
+        console.log('delay for 3 sec');
+      }, 3000);
+      const response = await client.broadcast(replyMessage);
       return response;
     }
   } else {
