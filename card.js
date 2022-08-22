@@ -1,23 +1,25 @@
-const prompt = require('prompt-sync')();
+// const prompt = require('prompt-sync')();
 const dayjs = require('dayjs');
 
+//////////////////////////////////////////
+//initialize space-repition value
+//////////////////////////////////////////
 const intervalModified = 50;
 const easyBonus = 3;
 const startEase = 250;
 const startDateInterval = 1;
+const today = dayjs().format("YYYY-MM-DD").toString();
 
-const setNewInterval = (card, status) => {
-    const modifiedCard = JSON.parse(JSON.stringify(card));
-    const current = parseInt(modifiedCard.current) || startDateInterval;
-    const ease = parseInt(modifiedCard.ease) || startEase;
+const setCardInterval  = ({card_current, card_ease, card_date}, status) => {
+    let current = card_current|| startDateInterval;
+    let ease = card_ease || startEase;
+    let date = card_date || today
 
-    const today = dayjs().format("YYYY-MM-DD").toString();
-    let date = modifiedCard.date || today;
     date = dayjs(date).unix() < dayjs(today).unix() ? dayjs(today) : dayjs(date);
     let newInterval;
     let nextDay;
 
-    //setNewInterval
+    //set new interval
     switch (status) {
         case "good":
             newInterval = current * (ease / 100) * (intervalModified / 100);
@@ -26,9 +28,9 @@ const setNewInterval = (card, status) => {
             date = date.set('date', date.get('date') + nextDay)
 
             //set card
-            modifiedCard.ease = ease.toString();
-            modifiedCard.current = nextDay.toString();
-            modifiedCard.date = date.format("YYYY-MM-DD");
+            ease = ease.toString();
+            current = nextDay.toString();
+            date = date.format("YYYY-MM-DD");
             break;
         case "hard":
             newInterval = current * 1.2 * (intervalModified / 100)
@@ -37,9 +39,9 @@ const setNewInterval = (card, status) => {
             date = date.set('date', date.get('date') + nextDay)
 
             //set card
-            modifiedCard.ease = (ease - 15).toString();
-            modifiedCard.current = nextDay.toString();
-            modifiedCard.date = date.format("YYYY-MM-DD").toString();
+            ease = (ease - 15).toString();
+            current = nextDay.toString();
+            date = date.format("YYYY-MM-DD").toString();
             break;
         case "easy":
             newInterval = current * (ease / 100) * (intervalModified / 100) * easyBonus
@@ -48,9 +50,9 @@ const setNewInterval = (card, status) => {
             date = date.set('date', date.get('date') + nextDay)
 
             //set card
-            modifiedCard.ease = (ease + 15).toString();
-            modifiedCard.current = nextDay.toString();
-            modifiedCard.date = date.format("YYYY-MM-DD").toString();
+            ease = (ease + 15).toString();
+            current = nextDay.toString();
+            date = date.format("YYYY-MM-DD").toString();
             break;
         default:
             newInterval = current * 0.5;
@@ -59,16 +61,16 @@ const setNewInterval = (card, status) => {
             date = dayjs(today); //show card for today again
 
             //set card
-            modifiedCard.ease = (ease - 25).toString();
-            modifiedCard.current = nextDay.toString()
-            modifiedCard.date = date.format("YYYY-MM-DD").toString();
+            ease = (ease - 25).toString();
+            current = nextDay.toString()
+            date = date.format("YYYY-MM-DD").toString();
             break;
     }
-    return modifiedCard;
+    return {ease: ease, current: current, date: date};
 }
 
 module.exports = {
-    setNewInterval
+    setCardInterval 
 }
 
 //this is for testing
@@ -88,7 +90,7 @@ module.exports = {
 
 //     const status = prompt(front + ": ");
 //     console.log(`Answer is: ${back}`);
-//     const _card = setNewInterval(card, status);
+//     const _card = setCardInterval (card, status);
 //     return _card;
 // }
 
