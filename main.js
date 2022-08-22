@@ -62,10 +62,10 @@ const pushCard = async (event) => {
         const allDeckId = allDeck.map((thisDeck) => thisDeck.deck_id);
 
         let listOfTodayCard = [];
-        for(const i in allDeckId){
-            const card = await getTodayCard(allDeckId[i])
+        await Promise.all(allDeckId.map(async (deckId) => {
+            const card = await getTodayCard(deckId);
             listOfTodayCard.push(...card)
-        }
+        }))
 
         //prepare front card
         if(listOfTodayCard.length !== 0){

@@ -272,10 +272,11 @@ const getAllPropsContent = async (cardId, takingProps) => {
     const page = await retrievePage(cardId);
     const card = { card_id: cardId, properties: page.properties };
 
-    const cardContent = {}
-    for(const props in takingProps){
-        cardContent[takingProps[props]] = await getCardContent(card, takingProps[props]);
-    }
+    const cardContent = {};
+
+    await Promise.all(takingProps.map(async (prop) => {
+        cardContent[prop] = await getCardContent(card, prop);
+    }))
 
     return cardContent;
 }
