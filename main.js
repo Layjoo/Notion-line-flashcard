@@ -202,27 +202,28 @@ const sendRemainCard = async (event) => {
     const {card_id, deck, tag} = data
 
     let remain;
+    let deckId;
     if(deck == "random"){
         //get today card
         const allDeck = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
         const allDeckId = allDeck.map((thisDeck) => thisDeck.deck_id);
 
         let listOfTodayCard = [];
-        for(const i in allDeckId){
-            const card = await getTodayCard(allDeckId[i])
+        await Promise.all(allDeckId.map(async (deckId) => {
+            const card = await getTodayCard(deckId);
             listOfTodayCard.push(...card)
-        }
-        
+        }))
         remain = listOfTodayCard.length;
-    }
 
-    const cardData = await retrievePage(card_id);
-    const deckId = cardData.parent.database_id;
-    
-    if(tag == "random"){
+    }else if(tag == "random"){
+        const cardData = await retrievePage(card_id);
+        deckId = cardData.parent.database_id;
         const deckCards = await getTodayCard(deckId);
         remain =  deckCards.length;
+
     }else{
+        const cardData = await retrievePage(card_id);
+        deckId = cardData.parent.database_id;
         const tagCards = await getTagsCard(deckId, tag);
         remain = tagCards.length;
     }
