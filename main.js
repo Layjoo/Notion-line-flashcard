@@ -34,28 +34,16 @@ const config = {
 const client = new line.Client(config);
 
 ////////////////////////////////////////////////////
-//web hook, get event when user do somthing with bot
-////////////////////////////////////////////////////
-app.post("/callback", line.middleware(config), (req, res) => {
-    Promise.all(req.body.events.map(handleEvent))
-        .then((result) => res.json(result))
-        .catch((err) => {
-            console.error(err);
-            res.status(500).end();
-        });
-});
-
-////////////////////////////////////////////////////
 //functions which manipulate with event
 ////////////////////////////////////////////////////
 const pushCard = async (event) => {
     const data = JSON.parse(event.postback.data);
     const {deck, tag, deck_id} = data;
+    const replyToken = event.replyToken;
     let replyMessage;
 
-    ///////////////////////////////
+
     //pepared random card from all deck
-    ///////////////////////////////
     if(deck == "random"){
         //get today card
         const allDeck = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
@@ -99,18 +87,20 @@ const pushCard = async (event) => {
             replyMessage = lineMessage("ทวนการ์ดวันนี้ครบแล้ว");
         }
 
-        //push front side of card to user
-        await client.replyMessage(
-            event.replyToken,
-            replyMessage
-        );
+        //push front card to user
+        if(replyToken) {
+            await client.replyMessage(
+                replyToken,
+                replyMessage
+            );
+        }else{
+            await client.broadcast(replyMessage);
+        }
 
         return event;
     }
 
-    ///////////////////////////////
     //prepared tag card in selected deck
-    ///////////////////////////////
     let listOfAllCards;
     if(tag == "random"){
         //get card in specific deck
@@ -156,10 +146,15 @@ const pushCard = async (event) => {
     }
 
     //push front card to user
-    await client.replyMessage(
-        event.replyToken,
-        replyMessage
-    );
+    if(replyToken) {
+        await client.replyMessage(
+            replyToken,
+            replyMessage
+        );
+    }else{
+      await client.broadcast(replyMessage);
+    }
+    
     console.log("Front Card has been sent!");
     return event
 }
@@ -262,6 +257,9 @@ async function handleEvent(event) {
 
     //check for postback
     if (event.type == "postback") {
+        
+        console.log(event.postback.data)
+
         const data = JSON.parse(event.postback.data);
         const {choice, card_id, deck, tag} = data;
 
@@ -362,6 +360,32 @@ async function handleEvent(event) {
 
     return event;
 }
+
+////////////////////////////////////////////////////
+//server
+////////////////////////////////////////////////////
+
+//webhook
+app.post("/callback", line.middleware(config), (req, res) => {
+    Promise.all(req.body.events.map(handleEvent))
+        .then((result) => res.json(result))
+        .catch((err) => {
+            console.error(err);
+            res.status(500).end();
+        });
+});
+
+//auto pushcard path
+app.get('/pushcard', async (req, res) => {
+    const event = {postback: {
+        data: JSON.stringify({
+            deck: "random",
+            tag: "random",
+        })
+    }}
+    const response = await pushCard(event);
+    res.send(response);
+})
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
