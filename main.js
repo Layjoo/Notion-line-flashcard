@@ -89,13 +89,13 @@ const pushCard = async (event) => {
         }
 
         //push front card to user
-        if(replyToken) {
+        if(replyToken == "pushcard") {
+            await client.broadcast(replyMessage);
+        }else{
             await client.replyMessage(
                 replyToken,
                 replyMessage
             );
-        }else{
-            await client.broadcast(replyMessage);
         }
 
         return event;
