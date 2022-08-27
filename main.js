@@ -84,6 +84,7 @@ const pushCard = async (event) => {
                 replyMessage = sendCard(sendCardOptions);
             }
         }else{
+            if(replyToken == "pushcard") return event;
             replyMessage = lineMessage("ทวนการ์ดวันนี้ครบแล้ว");
         }
 
@@ -383,9 +384,14 @@ app.get('/pushcard', async (req, res) => {
             deck: "random",
             tag: "random",
         })
-    }}
+    }, replyToken: "pushcard"}
     const response = await pushCard(event);
     res.send(response);
+})
+
+//auto pushcard path
+app.get('/waking', async (req, res) => {
+    res.send("Server has woken up!");
 })
 
 app.listen(port, () => {
