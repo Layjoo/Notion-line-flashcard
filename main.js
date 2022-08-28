@@ -18,7 +18,8 @@ const {
     getAllPropsContent,
     updateCardInterval,
     suspendCard,
-    updateDeckProgression
+    updateDeckProgression,
+    updateAllDeckProgression
 } = require("./notion-api");
 const {setCardInterval} = require("./card");
 const line = require("@line/bot-sdk");
@@ -44,7 +45,7 @@ const pushCard = async (event) => {
 
 
     //pepared random card from all deck
-    if(deck == "random"){
+    if(deck === "random"){
         //get today card
         const allDeck = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
         const allDeckId = allDeck.map((thisDeck) => thisDeck.deck_id);
@@ -84,12 +85,12 @@ const pushCard = async (event) => {
                 replyMessage = sendCard(sendCardOptions);
             }
         }else{
-            if(replyToken == "pushcard") return event;
+            if(replyToken === "pushcard") return event;
             replyMessage = lineMessage("ทวนการ์ดวันนี้ครบแล้ว");
         }
 
         //push front card to user
-        if(replyToken == "pushcard") {
+        if(replyToken === "pushcard") {
             await client.broadcast(replyMessage);
         }else{
             await client.replyMessage(
@@ -103,7 +104,7 @@ const pushCard = async (event) => {
 
     //prepared tag card in selected deck
     let listOfAllCards;
-    if(tag == "random"){
+    if(tag === "random"){
         //get card in specific deck
         listOfAllCards = await getTodayCard(deck_id, tag);
         console.log("get random card in deck")
@@ -240,7 +241,7 @@ const sendRemainCard = async (event) => {
         sendContinueMessage
     );
 
-    return remain;
+    return event;
 }
 
 ////////////////////////////////////////////////////
@@ -347,13 +348,13 @@ async function handleEvent(event) {
                 console.log(`Card has been updated for ${choice} selection`);
 
                 //send remain card to user
-                const remain = await sendRemainCard(event);
+                await sendRemainCard(event);
                 console.log("Remain card has sent!")
 
                 //update deck progression
                 const cardData = await retrievePage(card_id);
                 const deckId = cardData.parent.database_id;
-                await updateDeckProgression(deckId, remain);
+                await updateDeckProgression(deckId);
                 console.log("Update deck progression complete!")
                 
             return event;
@@ -377,7 +378,7 @@ app.post("/callback", line.middleware(config), (req, res) => {
         });
 });
 
-//auto pushcard path
+//auto pushcard endpoint
 app.get('/pushcard', async (req, res) => {
     const event = {postback: {
         data: JSON.stringify({
@@ -389,9 +390,14 @@ app.get('/pushcard', async (req, res) => {
     res.send(response);
 })
 
-//auto pushcard path
+//auto waking server endpoint
 app.get('/waking', async (req, res) => {
     res.send("Server has woken up!");
+})
+
+app.get('/update_deck_progression', async (req, res) => {
+    const response = await updateAllDeckProgression(process.env.FLASH_CARD_SETTING_DB_ID);
+    res.send(response);
 })
 
 app.listen(port, () => {

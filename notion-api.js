@@ -311,7 +311,7 @@ const suspendCard = async (cardId) => {
     return response;
 }
 
-const updateDeckProgression  = async (deckId, remainCards) => {
+const updateDeckProgression  = async (deckId) => {
 
     const deckData = await retrieveDB(deckId);
     const mainPageDeckId = deckData.parent.page_id;
@@ -319,16 +319,30 @@ const updateDeckProgression  = async (deckId, remainCards) => {
     const databaseData = await queryDB(deckId);
     const allCards = databaseData.results.length;
 
+    const todayCards = await getTodayCard(deckId);
+    const remain = todayCards.length;
+
     const response = updatePageProps(mainPageDeckId, {
         "All cards": {
             "number": parseInt(allCards)
         },
         "Today cards": {
-            "number": parseInt(remainCards)
+            "number": parseInt(remain)
         } 
     })
 
     return response;
+}
+
+const updateAllDeckProgression = async(FlashCardDBSettignId) => {
+    const deckList = await getAllDecks(FlashCardDBSettignId);
+
+    await Promise.all(deckList.map( async (deck) => {
+        const response = await updateDeckProgression(deck.deck_id);
+        return response;
+    }))
+
+    return deckList;
 }
 
 module.exports = {
@@ -342,6 +356,7 @@ module.exports = {
     updateCardInterval,
     suspendCard,
     updateDeckProgression,
+    updateAllDeckProgression
 };
 
 
