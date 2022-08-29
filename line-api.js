@@ -109,40 +109,6 @@ const sendCard = ({displayText, card_id, deck, tag}) => {
     };
 };
 
-const sendDecks = async (displayText, decks, tag) => {
-    const quickReply = {
-        type: "text",
-        text: displayText,
-        quickReply: {
-            items: [
-                {
-                    type: "action",
-                    action: {
-                        type: "postback",
-                        label: "สุ่มการ์ด",
-                        data: `{"choice": "selectedDeck","deck": "random", "tag": "random"}`,
-                        displayText: "สุ่มการ์ด",
-                    },
-                },
-            ],
-        },
-    };
-
-    for (let i in decks) {
-        quickReply.quickReply.items.push({
-            type: "action",
-            action: {
-                type: "postback",
-                label: decks[i],
-                data: `{"choice": "selectedDeck", "deck": "${decks[i]}", "tag": null}`,
-                displayText: decks[i],
-            },
-        });
-    }
-
-    return quickReply;
-};
-
 const sendTag = ({displayText, deck, deck_id, tags}) => {
     const quickReply = {
         type: "text",
@@ -251,12 +217,173 @@ const carouselImg = (images) => {
     return carousel;
 }
 
+const decksCarousel = (deckData) => {
+
+    const bgColor = [
+        {primary: "#27ACB2", secondary: "#0D8186", mute: "#9FD8E36E"},
+        {primary: "#FF6B6E", secondary: "#DE5658", mute: "#FAD2A76E"},
+        {primary: "#A17DF5", secondary: "#7D51E4", mute: "#9FD8E36E"}];
+    let bgCount = 0;
+    const carousel = {
+        "type": "flex",
+        "altText": "deck flex",
+            "contents": {
+            "type": "carousel",
+            "contents": [
+            ]
+        }   
+    }
+
+    for(let i in deckData) {
+
+        if(bgCount == bgColor.length){
+            bgCount = 0
+        }else{
+            bgCount++
+        }
+        
+        carousel.contents.contents.push({
+            "type": "bubble",
+            "size": "micro",
+            "header": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                {
+                    "type": "text",
+                    "text": `${deckData[i].deck_name}`,
+                    "color": "#ffffff",
+                    "align": "start",
+                    "size": "md",
+                    "gravity": "center",
+                    "wrap": true
+                },
+                {
+                    "type": "text",
+                    "text": `${deckData[i].progression}`,
+                    "color": "#ffffff",
+                    "align": "start",
+                    "size": "xs",
+                    "gravity": "center",
+                    "margin": "lg"
+                },
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                        {
+                            "type": "filler"
+                        }
+                        ],
+                        "width": `${deckData[i].progression}`,
+                        "backgroundColor": `${bgColor[bgCount].secondary}`,
+                        "height": "6px"
+                    }
+                    ],
+                    "backgroundColor": `${bgColor[bgCount].mute}`,
+                    "height": "6px",
+                    "margin": "sm"
+                }
+                ],
+                "backgroundColor": `${bgColor[bgCount].primary}`,
+                "paddingTop": "19px",
+                "paddingAll": "12px",
+                "paddingBottom": "16px",
+                "height": "120px"
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                    {
+                        "type": "button",
+                        "action": {
+                        "type": "postback",
+                        "label": "เปิดการ์ด",
+                        "data": `{"choice": "selectedDeck", "deck": "${deckData[i].deck_name}", "tag": null}`
+                        },
+                        "style": "primary",
+                        "height": "sm"
+                    }
+                    ],
+                    "flex": 1,
+                    "spacing": "12px",
+                    "justifyContent": "center"
+                }
+                ],
+                "spacing": "md",
+                "paddingAll": "12px"
+            },
+            "styles": {
+                "footer": {
+                "separator": false
+                }
+            }
+        })
+    }
+
+    carousel.contents.contents.push(    {
+        "type": "bubble",
+        "size": "micro",
+        "header": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://cdn-icons-png.flaticon.com/512/1055/1055804.png",
+              "size": "sm",
+              "animated": false,
+              "margin": "lg"
+            }
+          ],
+          "paddingTop": "19px",
+          "paddingAll": "12px",
+          "paddingBottom": "16px",
+          "height": "120px"
+        },
+        "body": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "button",
+              "action": {
+                "type": "postback",
+                "label": "สุ่มการ์ด",
+                "data": `{"choice": "selectedDeck", "deck": "random", "tag": "ramdom"}`
+              },
+              "style": "secondary",
+              "height": "sm"
+            }
+          ],
+          "spacing": "md",
+          "paddingAll": "12px"
+        },
+        "styles": {
+          "footer": {
+            "separator": false
+          }
+        }
+      })
+
+    return carousel;
+}
+
 module.exports = {
     sendBack,
     sendCard,
-    sendDecks,
     sendTag,
     sendContinue,
     lineMessage,
-    carouselImg
+    carouselImg,
+    decksCarousel
 };

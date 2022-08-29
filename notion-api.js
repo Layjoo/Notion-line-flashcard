@@ -101,6 +101,20 @@ const getAllDecks = async (FlashCardDBSettignId) => {
     return listOfDeckDB;
 };
 
+const getAllDecksData = async (databaseId) => {
+    const decksId = await collectAllDecksinDB(databaseId);
+    const decksData = await Promise.all(decksId.map(async (deckId) => {
+        const deckProps = await getAllPropsContent(deckId, ["deck", "today progress"]);
+        const data = {
+            deck_name: deckProps["deck"],
+            progression: deckProps["today progress"]*100 + "%"
+        }
+        return data;
+    }))
+
+    return decksData;
+}
+
 //take card content by giving which card's props you want to retrive
 const getCardContent = async ({ card_id, properties }, props) => {
     const response = await retrievePagePropsItems(card_id, properties[props].id);
@@ -118,6 +132,10 @@ const getCardContent = async ({ card_id, properties }, props) => {
             });
 
             cardContent = textList.join("");
+        }
+
+        if (response.property_item.type == "title") {
+            return response.results[0].title.plain_text;
         }
 
         return cardContent;
@@ -138,6 +156,10 @@ const getCardContent = async ({ card_id, properties }, props) => {
 
     if (propertyType == "select") {
         return response.select && response.select.name;
+    }
+
+    if (propertyType == "formula") {
+        return response.formula[response.formula.type];
     }
 };
 
@@ -356,7 +378,8 @@ module.exports = {
     updateCardInterval,
     suspendCard,
     updateDeckProgression,
-    updateAllDeckProgression
+    updateAllDeckProgression,
+    getAllDecksData
 };
 
 

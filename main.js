@@ -2,11 +2,11 @@ require("dotenv").config();
 const {
     sendBack,
     sendCard,
-    sendDecks,
     sendTag,
     sendContinue,
     lineMessage,
-    carouselImg
+    carouselImg,
+    decksCarousel
 } = require("./line-api");
 const {
     getAllDecks,
@@ -19,7 +19,8 @@ const {
     updateCardInterval,
     suspendCard,
     updateDeckProgression,
-    updateAllDeckProgression
+    updateAllDeckProgression,
+    getAllDecksData
 } = require("./notion-api");
 const {setCardInterval} = require("./card");
 const line = require("@line/bot-sdk");
@@ -191,10 +192,9 @@ const sendTagChoice = async (event) => {
     );
 }
 
-const sendDeckChoice = async (event) => {
-    const decks = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
-    const decksName = decks.map((deck) => deck.deck_name);
-    const message = await sendDecks("เลือกสำรับ", decksName);
+const sendCarouselDecks = async (event) => {
+    const decksData = await getAllDecksData(process.env.FLASH_CARD_SETTING_DB_ID);
+    const message = decksCarousel(decksData);
     const response = await client.replyMessage(event.replyToken, message);
     return response;
 }
@@ -252,7 +252,7 @@ async function handleEvent(event) {
     if (event.type == "message") {
         switch (event.message.text) {
             case "open card":
-                await sendDeckChoice(event);
+                await sendCarouselDecks(event);
                 return event;
             default: break;
         }
@@ -272,7 +272,6 @@ async function handleEvent(event) {
                     await pushCard(event);
                     return event;
                 }
-
                 await sendTagChoice(event);
                 return event;
             case "selectedTag":
