@@ -235,12 +235,6 @@ const decksCarousel = (deckData) => {
     }
 
     for(let i in deckData) {
-
-        if(bgCount == bgColor.length){
-            bgCount = 0
-        }else{
-            bgCount++
-        }
         
         carousel.contents.contents.push({
             "type": "bubble",
@@ -328,6 +322,9 @@ const decksCarousel = (deckData) => {
                 }
             }
         })
+
+        bgCount++;
+        if(bgCount == bgColor.length) bgCount = 0;
     }
 
     carousel.contents.contents.push(    {
