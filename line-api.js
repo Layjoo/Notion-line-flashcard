@@ -226,13 +226,58 @@ const decksCarousel = (deckData) => {
     let bgCount = 0;
     const carousel = {
         "type": "flex",
-        "altText": "deck flex",
+        "altText": "เลือกสำรับ",
             "contents": {
             "type": "carousel",
             "contents": [
             ]
         }   
     }
+
+    carousel.contents.contents.push(    {
+        "type": "bubble",
+        "size": "micro",
+        "header": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://cdn-icons-png.flaticon.com/512/1055/1055804.png",
+              "size": "sm",
+              "animated": false,
+              "margin": "lg"
+            }
+          ],
+          "paddingTop": "19px",
+          "paddingAll": "12px",
+          "paddingBottom": "16px",
+          "height": "120px"
+        },
+        "body": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "button",
+              "action": {
+                "type": "postback",
+                "label": "สุ่มการ์ด",
+                "data": `{"choice": "selectedDeck", "deck": "random", "tag": "ramdom"}`
+              },
+              "style": "secondary",
+              "height": "sm"
+            }
+          ],
+          "spacing": "md",
+          "paddingAll": "12px"
+        },
+        "styles": {
+          "footer": {
+            "separator": false
+          }
+        }
+    })
 
     for(let i in deckData) {
         
@@ -326,51 +371,6 @@ const decksCarousel = (deckData) => {
         bgCount++;
         if(bgCount == bgColor.length) bgCount = 0;
     }
-
-    carousel.contents.contents.push(    {
-        "type": "bubble",
-        "size": "micro",
-        "header": {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "image",
-              "url": "https://cdn-icons-png.flaticon.com/512/1055/1055804.png",
-              "size": "sm",
-              "animated": false,
-              "margin": "lg"
-            }
-          ],
-          "paddingTop": "19px",
-          "paddingAll": "12px",
-          "paddingBottom": "16px",
-          "height": "120px"
-        },
-        "body": {
-          "type": "box",
-          "layout": "vertical",
-          "contents": [
-            {
-              "type": "button",
-              "action": {
-                "type": "postback",
-                "label": "สุ่มการ์ด",
-                "data": `{"choice": "selectedDeck", "deck": "random", "tag": "ramdom"}`
-              },
-              "style": "secondary",
-              "height": "sm"
-            }
-          ],
-          "spacing": "md",
-          "paddingAll": "12px"
-        },
-        "styles": {
-          "footer": {
-            "separator": false
-          }
-        }
-      })
 
     return carousel;
 }
