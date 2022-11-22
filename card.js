@@ -1,5 +1,9 @@
 // const prompt = require('prompt-sync')();
 const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc')
+const timezone = require('dayjs/plugin/timezone')
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 //////////////////////////////////////////
 //initialize space-repition value
@@ -8,7 +12,7 @@ const intervalModified = 50;
 const easyBonus = 3;
 const startEase = 250;
 const startDateInterval = 1;
-const today = dayjs().format("YYYY-MM-DD").toString();
+const today = dayjs().tz("Asia/Bangkok").format("YYYY-MM-DD").toString();
 
 const setCardInterval  = ({card_current, card_ease, card_date}, status) => {
     let current = card_current|| startDateInterval;
@@ -66,6 +70,8 @@ const setCardInterval  = ({card_current, card_ease, card_date}, status) => {
             date = date.format("YYYY-MM-DD").toString();
             break;
     }
+
+    console.log(date)
     return {ease: ease, current: current, date: date};
 }
 

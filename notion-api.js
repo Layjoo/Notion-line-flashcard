@@ -165,7 +165,7 @@ const getCardContent = async ({ card_id, properties }, props) => {
 
 //filter only enable cards, today cards and overdue cards from given list of decks
 const getTodayCard = async (deckId) => {
-    const today = dayjs().format("YYYY-MM-DD").toString();
+    const today = dayjs().tz("Asia/Bangkok").format("YYYY-MM-DD").toString();
     const filterCondition = {
         and: [
             {
@@ -215,7 +215,7 @@ const getTodayCard = async (deckId) => {
 };
 
 const getTagsCard = async (deckId, tag) => {
-    const today = dayjs().format("YYYY-MM-DD").toString();
+    const today = dayjs().tz("Asia/Bangkok").format("YYYY-MM-DD").toString();
     const filterCondition = {
         and: [
             {
