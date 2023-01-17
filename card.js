@@ -1,114 +1,72 @@
-// const prompt = require('prompt-sync')();
-const dayjs = require('dayjs');
-const utc = require('dayjs/plugin/utc')
-const timezone = require('dayjs/plugin/timezone')
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
-//////////////////////////////////////////
 //initialize space-repition value
-//////////////////////////////////////////
 const intervalModified = 50;
 const easyBonus = 3;
 const startEase = 250;
 const startDateInterval = 1;
-const today = dayjs().tz("Asia/Bangkok").format("YYYY-MM-DD").toString();
+const today = new Date();
+const thailandTimezoneOffset = 420; // offset in minutes
 
-const setCardInterval  = ({card_current, card_ease, card_date}, status) => {
-    let current = card_current|| startDateInterval;
-    let ease = card_ease || startEase;
-    let date = card_date || today
+//function for setting new card interval
+const setCardInterval = (card, status) => {
+    let current = card.card_current || startDateInterval;
+    let ease = card.card_ease || startEase;
+    let date = card.card_date || today;
 
-    date = dayjs(date).unix() < dayjs(today).unix() ? dayjs(today) : dayjs(date);
+    // adjust date to Thailand timezone
+    date = new Date(date.getTime() + (thailandTimezoneOffset * 60000));
+
+    if (date < today) {
+        date = today;
+    }
+
     let newInterval;
     let nextDay;
 
-    //set new interval
     switch (status) {
         case "good":
             newInterval = current * (ease / 100) * (intervalModified / 100);
-            nextDay = Math.ceil(newInterval)
+            nextDay = Math.ceil(newInterval);
             nextDay < 1 ? nextDay = 1 : nextDay = nextDay;
-            date = date.set('date', date.get('date') + nextDay)
+            date.setDate(date.getDate() + nextDay);
 
-            //set card
             ease = ease.toString();
             current = nextDay.toString();
-            date = date.format("YYYY-MM-DD");
             break;
         case "hard":
-            newInterval = current * 1.2 * (intervalModified / 100)
-            nextDay = Math.ceil(newInterval)
+            newInterval = current * 1.2 * (intervalModified / 100);
+            nextDay = Math.ceil(newInterval);
             nextDay < 1 ? nextDay = 1 : nextDay = nextDay;
-            date = date.set('date', date.get('date') + nextDay)
+            date.setDate(date.getDate() + nextDay);
 
-            //set card
             ease = (ease - 15).toString();
             current = nextDay.toString();
-            date = date.format("YYYY-MM-DD").toString();
             break;
         case "easy":
-            newInterval = current * (ease / 100) * (intervalModified / 100) * easyBonus
-            nextDay = Math.ceil(newInterval)
+            newInterval = current * (ease / 100) * (intervalModified / 100) * easyBonus;
+            nextDay = Math.ceil(newInterval);
             nextDay < 1 ? nextDay = 1 : nextDay = nextDay;
-            date = date.set('date', date.get('date') + nextDay)
+            date.setDate(date.getDate() + nextDay);
 
-            //set card
             ease = (ease + 15).toString();
             current = nextDay.toString();
-            date = date.format("YYYY-MM-DD").toString();
             break;
         default:
             newInterval = current * 0.5;
-            nextDay = Math.ceil(newInterval)
+            nextDay = Math.ceil(newInterval);
             nextDay < 1 ? nextDay = 1 : nextDay = nextDay;
-            date = dayjs(today); //show card for today again
+            date = today;
 
-            //set card
             ease = (ease - 25).toString();
-            current = nextDay.toString()
-            date = date.format("YYYY-MM-DD").toString();
+            current = nextDay.toString();
             break;
     }
 
-    console.log(date)
-    return {ease: ease, current: current, date: date};
-}
+    const formattedDate = date.toISOString().slice(0, 10);
+
+    return { ease: ease, current: current, date: formattedDate };
+};
 
 module.exports = {
-    setCardInterval 
+    setCardInterval
 }
-
-//this is for testing
-/////////////////////////
-
-// const card = {
-//     front: "What is the first alphabet in English",
-//     back: "a",
-//     date: "2022-05-08",
-//     current: startDateInterval,
-//     ease: startEase
-// }
-
-// const showCard = (card) => {
-//     const front = card.front;
-//     const back = card.back;
-
-//     const status = prompt(front + ": ");
-//     console.log(`Answer is: ${back}`);
-//     const _card = setCardInterval (card, status);
-//     return _card;
-// }
-
-// let test = true;
-// let i=0;
-// let mycard = card;
-
-// while(test){
-//     mycard = showCard(mycard)
-//     console.log(mycard)
-//     if(i==5){
-//         test = false;
-//     }
-//     i++
-// }

@@ -1,6 +1,11 @@
 const { Client } = require("@notionhq/client");
 require("dotenv").config();
-const dayjs = require("dayjs");
+
+//set today date using thailand timezone instead of any server timezone
+let today = new Date();
+const offset = 420; // offset in minutes for "Asia/Bangkok" timezone
+const bangkokTime = new Date(today.getTime() + offset * 60000);
+today = bangkokTime.toISOString().slice(0,10);
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 //////////////////////////////////////////
@@ -165,7 +170,7 @@ const getCardContent = async ({ card_id, properties }, props) => {
 
 //filter only enable cards, today cards and overdue cards from given list of decks
 const getTodayCard = async (deckId) => {
-    const today = dayjs().tz("Asia/Bangkok").format("YYYY-MM-DD").toString();
+    
     const filterCondition = {
         and: [
             {
@@ -215,7 +220,7 @@ const getTodayCard = async (deckId) => {
 };
 
 const getTagsCard = async (deckId, tag) => {
-    const today = dayjs().tz("Asia/Bangkok").format("YYYY-MM-DD").toString();
+ 
     const filterCondition = {
         and: [
             {
