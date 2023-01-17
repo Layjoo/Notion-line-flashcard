@@ -71,7 +71,7 @@ const setCardInterval  = ({card_current, card_ease, card_date}, status) => {
             break;
     }
 
-    console.log(date)
+    console.log(today)
     return {ease: ease, current: current, date: date};
 }
 
