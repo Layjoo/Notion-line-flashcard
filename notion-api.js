@@ -2,10 +2,13 @@ const { Client } = require("@notionhq/client");
 require("dotenv").config();
 
 //set today date using thailand timezone instead of any server timezone
-let today = new Date();
-const offset = 420; // offset in minutes for "Asia/Bangkok" timezone
-const bangkokTime = new Date(today.getTime() + offset * 60000);
-today = bangkokTime.toISOString().slice(0,10);
+const getCurrentTime = () => {
+    let today = new Date();
+    const offset = 420; // offset in minutes for "Asia/Bangkok" timezone
+    const bangkokTime = new Date(today.getTime() + offset * 60000);
+    today = bangkokTime.toISOString().slice(0, 10);
+    return today
+}
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 //////////////////////////////////////////
@@ -58,8 +61,8 @@ const retrievePagePropsItems = async (pageId, propsId) => {
 };
 
 const retrieveDB = async (databaseId) => {
-  const response = await notion.databases.retrieve({ database_id: databaseId });
-  return response;
+    const response = await notion.databases.retrieve({ database_id: databaseId });
+    return response;
 }
 
 const retrievePage = async (pageId) => {
@@ -99,26 +102,12 @@ const getAllDecks = async (FlashCardDBSettignId) => {
             const deckDBName = await retrieveBlock(pageDeck).then(
                 (page) => page.child_page.title
             );
-            return { deck_name: deckDBName, deck_id: deckDBId };
+            return { deck_name: deckDBName, page_deck: pageDeck, deck_id: deckDBId };
         })
     );
 
     return listOfDeckDB;
 };
-
-const getAllDecksData = async (databaseId) => {
-    const decksId = await collectAllDecksinDB(databaseId);
-    const decksData = await Promise.all(decksId.map(async (deckId) => {
-        const deckProps = await getAllPropsContent(deckId, ["deck", "today progress"]);
-        const data = {
-            deck_name: deckProps["deck"],
-            progression: deckProps["today progress"]*100 + "%"
-        }
-        return data;
-    }))
-
-    return decksData;
-}
 
 //take card content by giving which card's props you want to retrive
 const getCardContent = async ({ card_id, properties }, props) => {
@@ -166,11 +155,16 @@ const getCardContent = async ({ card_id, properties }, props) => {
     if (propertyType == "formula") {
         return response.formula[response.formula.type];
     }
+
+    if (propertyType == "date") {
+        return response.date.start;
+    }
 };
 
 //filter only enable cards, today cards and overdue cards from given list of decks
 const getTodayCard = async (deckId) => {
-    
+    const today = getCurrentTime();
+
     const filterCondition = {
         and: [
             {
@@ -220,7 +214,7 @@ const getTodayCard = async (deckId) => {
 };
 
 const getTagsCard = async (deckId, tag) => {
- 
+
     const filterCondition = {
         and: [
             {
@@ -284,14 +278,14 @@ const getTagsCard = async (deckId, tag) => {
 const randomCard = (listOfCards) => {
     const random = Math.floor(listOfCards.length * Math.random());
     const randomCard = listOfCards[random];
-    
+
     return randomCard;
 }
 
 const getAllTags = async (deckId) => {
     const response = await retrieveDB(deckId);
     const allTags = response.properties.tags.select.options.map(option => option.name);
-    
+
     return allTags;
 }
 
@@ -308,7 +302,7 @@ const getAllPropsContent = async (cardId, takingProps) => {
     return cardContent;
 }
 
-const updateCardInterval = async (cardId, {ease, current, date}) => {
+const updateCardInterval = async (cardId, { ease, current, date }) => {
     const response = await updatePageProps(cardId, {
         "current": {
             "number": parseInt(current)
@@ -320,7 +314,7 @@ const updateCardInterval = async (cardId, {ease, current, date}) => {
             "date": {
                 "start": date
             }
-        }   
+        }
     })
 
     return response;
@@ -329,20 +323,20 @@ const updateCardInterval = async (cardId, {ease, current, date}) => {
 const suspendCard = async (cardId) => {
     const response = await updatePageProps(cardId, {
         "status": {
-          "select": {
-            "name": "suspended"
-          }
+            "select": {
+                "name": "suspended"
+            }
         }
     })
 
     return response;
 }
 
-const updateDeckProgression  = async (deckId) => {
+const updateDeckProgression = async (deckId) => {
 
     const deckData = await retrieveDB(deckId);
     const mainPageDeckId = deckData.parent.page_id;
-    
+
     const databaseData = await queryDB(deckId);
     const allCards = databaseData.results.length;
 
@@ -355,16 +349,16 @@ const updateDeckProgression  = async (deckId) => {
         },
         "Today cards": {
             "number": parseInt(remain)
-        } 
+        }
     })
 
     return response;
 }
 
-const updateAllDeckProgression = async(FlashCardDBSettignId) => {
+const updateAllDeckProgression = async (FlashCardDBSettignId) => {
     const deckList = await getAllDecks(FlashCardDBSettignId);
 
-    await Promise.all(deckList.map( async (deck) => {
+    await Promise.all(deckList.map(async (deck) => {
         const response = await updateDeckProgression(deck.deck_id);
         return response;
     }))
@@ -383,8 +377,7 @@ module.exports = {
     updateCardInterval,
     suspendCard,
     updateDeckProgression,
-    updateAllDeckProgression,
-    getAllDecksData
+    updateAllDeckProgression
 };
 
 

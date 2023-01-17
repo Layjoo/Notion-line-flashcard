@@ -19,13 +19,17 @@ const {
     updateCardInterval,
     suspendCard,
     updateDeckProgression,
-    updateAllDeckProgression,
-    getAllDecksData
+    updateAllDeckProgression
 } = require("./notion-api");
 const {setCardInterval} = require("./card");
 const line = require("@line/bot-sdk");
 const app = require("express")();
 const port = process.env.PORT || 3000;
+
+//local variable
+let allDecks;
+
+getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID).then(data=> allDecks = data)
 
 //setting line
 const config = {
@@ -48,8 +52,7 @@ const pushCard = async (event) => {
     //pepared random card from all deck
     if(deck === "random"){
         //get today card
-        const allDeck = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
-        const allDeckId = allDeck.map((thisDeck) => thisDeck.deck_id);
+        const allDeckId = allDecks.map((thisDeck) => thisDeck.deck_id);
 
         let listOfTodayCard = [];
         await Promise.all(allDeckId.map(async (deckId) => {
@@ -167,8 +170,7 @@ const sendTagChoice = async (event) => {
     const {deck} = data;
 
     //get deck id equal to deck name which user has selected.
-    const allDeck = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
-    const selectDeckObj = allDeck.filter(
+    const selectDeckObj = allDecks.filter(
         (thisDeck) => thisDeck.deck_name == deck
     );
     const selectDeckId = selectDeckObj[0].deck_id;
@@ -193,7 +195,14 @@ const sendTagChoice = async (event) => {
 }
 
 const sendCarouselDecks = async (event) => {
-    const decksData = await getAllDecksData(process.env.FLASH_CARD_SETTING_DB_ID);
+    const decksData = await Promise.all(allDecks.map(async (deck) => {
+        const deckProps = await getAllPropsContent(deck.page_deck, ["deck", "today progress"]);
+        const data = {
+            deck_name: deckProps["deck"],
+            progression: deckProps["today progress"]*100 + "%"
+        }
+        return data;
+    }))
     const message = decksCarousel(decksData);
     const response = await client.replyMessage(event.replyToken, message);
     return response;
@@ -207,8 +216,7 @@ const sendRemainCard = async (event) => {
     let deckId;
     if(deck == "random"){
         //get today card
-        const allDeck = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID);
-        const allDeckId = allDeck.map((thisDeck) => thisDeck.deck_id);
+        const allDeckId = allDecks.map((thisDeck) => thisDeck.deck_id);
 
         let listOfTodayCard = [];
         await Promise.all(allDeckId.map(async (deckId) => {
@@ -389,13 +397,10 @@ app.get('/pushcard', async (req, res) => {
     res.send(response);
 })
 
-//auto waking server endpoint
-app.get('/waking', async (req, res) => {
-    res.send("Server has woken up!");
-})
-
 app.get('/update_deck_progression', async (req, res) => {
     const response = await updateAllDeckProgression(process.env.FLASH_CARD_SETTING_DB_ID);
+    //update allDecks variable every update deck progression has run.
+    allDecks = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID)
     res.send(response);
 })
 

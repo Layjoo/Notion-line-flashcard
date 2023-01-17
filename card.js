@@ -4,14 +4,22 @@ const intervalModified = 50;
 const easyBonus = 3;
 const startEase = 250;
 const startDateInterval = 1;
-const today = new Date();
 const thailandTimezoneOffset = 420; // offset in minutes
 
+//set today date using thailand timezone instead of any server timezone
+const getCurrentTime = () => {
+    let today = new Date();
+    const offset = 420; // offset in minutes for "Asia/Bangkok" timezone
+    const bangkokTime = new Date(today.getTime() + offset * 60000);
+    return bangkokTime
+}
+
 //function for setting new card interval
-const setCardInterval = (card, status) => {
-    let current = card.card_current || startDateInterval;
-    let ease = card.card_ease || startEase;
-    let date = card.card_date || today;
+const setCardInterval = ({card_current, card_ease, card_date}, status) => {
+    const today = getCurrentTime();
+    let current = card_current || startDateInterval;
+    let ease = card_ease || startEase;
+    let date = new Date(card_date) || today;
 
     // adjust date to Thailand timezone
     date = new Date(date.getTime() + (thailandTimezoneOffset * 60000));
