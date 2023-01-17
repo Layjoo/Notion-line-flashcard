@@ -62,7 +62,6 @@ const setCardInterval = (card, status) => {
             break;
     }
 
-<<<<<<< HEAD
     const formattedDate = date.toISOString().slice(0, 10);
 
     return { ease: ease, current: current, date: formattedDate };
@@ -71,46 +70,3 @@ const setCardInterval = (card, status) => {
 module.exports = {
     setCardInterval
 }
-=======
-    console.log(today)
-    return {ease: ease, current: current, date: date};
-}
-
-module.exports = {
-    setCardInterval 
-}
-
-//this is for testing
-/////////////////////////
-
-// const card = {
-//     front: "What is the first alphabet in English",
-//     back: "a",
-//     date: "2022-05-08",
-//     current: startDateInterval,
-//     ease: startEase
-// }
-
-// const showCard = (card) => {
-//     const front = card.front;
-//     const back = card.back;
-
-//     const status = prompt(front + ": ");
-//     console.log(`Answer is: ${back}`);
-//     const _card = setCardInterval (card, status);
-//     return _card;
-// }
-
-// let test = true;
-// let i=0;
-// let mycard = card;
-
-// while(test){
-//     mycard = showCard(mycard)
-//     console.log(mycard)
-//     if(i==5){
-//         test = false;
-//     }
-//     i++
-// }
->>>>>>> 1098b2702894d5558c829242e943e54b4638a632
