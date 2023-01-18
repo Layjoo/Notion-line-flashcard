@@ -208,12 +208,14 @@ const getTodayCard = async (deckId) => {
     return allCards.map((card) => {
         return {
             card_id: card.id,
+            deck_id: card.parent.database_id,
             properties: card.properties,
         };
     });
 };
 
 const getTagsCard = async (deckId, tag) => {
+    const today = getCurrentTime();
 
     const filterCondition = {
         and: [

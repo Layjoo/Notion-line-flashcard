@@ -1,6 +1,6 @@
 const {setCardInterval} = require("./card")
 
-const sendBack = ({displayText, card_id, card_ease, card_current, card_date, deck, tag,}) => {
+const sendBack = ({displayText, card_id, card_ease, card_current, card_date, tag, deck, deck_id}) => {
 
     const cardState = { card_current: card_current, card_ease: card_ease, card_date: card_date};
 
@@ -23,7 +23,9 @@ const sendBack = ({displayText, card_id, card_ease, card_current, card_date, dec
                             card_id: card_id,
                             choice: "again",
                             deck: deck,
+                            deck_id: deck_id,
                             tag: tag,
+                            card_state: cardState
                         }),
                         displayText: "again",
                     },
@@ -37,7 +39,9 @@ const sendBack = ({displayText, card_id, card_ease, card_current, card_date, dec
                             card_id: card_id,
                             choice: "hard",
                             deck: deck,
+                            deck_id: deck_id,
                             tag: tag,
+                            card_state: cardState
                         }),
                         displayText: "hard",
                     },
@@ -51,7 +55,9 @@ const sendBack = ({displayText, card_id, card_ease, card_current, card_date, dec
                             card_id: card_id,
                             choice: "good",
                             deck: deck,
+                            deck_id: deck_id,
                             tag: tag,
+                            card_state: cardState
                         }),
                         displayText: "good",
                     },
@@ -65,7 +71,9 @@ const sendBack = ({displayText, card_id, card_ease, card_current, card_date, dec
                             card_id: card_id,
                             choice: "easy",
                             deck: deck,
+                            deck_id: deck_id,
                             tag: tag,
+                            card_state: cardState
                         }),
                         displayText: "easy",
                     },
@@ -79,7 +87,9 @@ const sendBack = ({displayText, card_id, card_ease, card_current, card_date, dec
                             card_id: card_id,
                             choice: "suspend",
                             deck: deck,
+                            deck_id: deck_id,
                             tag: tag,
+                            card_state: cardState
                         }),
                         displayText: "ระงับการ์ด",
                     },
@@ -89,7 +99,7 @@ const sendBack = ({displayText, card_id, card_ease, card_current, card_date, dec
     };
 };
 
-const sendCard = ({displayText, card_id, deck, tag}) => {
+const sendCard = ({displayText, card_id, deck, deck_id, tag}) => {
     return {
         type: "text",
         text: displayText,
@@ -100,7 +110,7 @@ const sendCard = ({displayText, card_id, deck, tag}) => {
                     action: {
                         type: "postback",
                         label: "เฉลย",
-                        data: `{"card_id": "${card_id}", "choice": "back", "deck": "${deck}", "tag": "${tag}"}`,
+                        data: `{"card_id": "${card_id}", "choice": "back", "deck": "${deck}", "deck_id": "${deck_id}", "tag": "${tag}"}`,
                         displayText: "เฉลย",
                     },
                 },
@@ -143,7 +153,7 @@ const sendTag = ({displayText, deck, deck_id, tags}) => {
     return quickReply;
 };
 
-const sendContinue = (remain, deck, deckId, tag) => {
+const sendContinue = (remain, deck, deck_id, tag) => {
     return {
         type: "text",
         text: `เหลือการ์ดวันนี้อีก ${remain} ใบ`,
@@ -154,7 +164,7 @@ const sendContinue = (remain, deck, deckId, tag) => {
                     action: {
                         type: "postback",
                         label: "เปิด",
-                        data: `{"choice": "next", "deck": "${deck}", "deck_id": "${deckId}", "tag": "${tag}"}`,
+                        data: `{"choice": "next", "deck": "${deck}", "deck_id": "${deck_id}", "tag": "${tag}"}`,
                         displayText: "เปิด",
                     },
                 },
@@ -347,7 +357,7 @@ const decksCarousel = (deckData) => {
                         "action": {
                         "type": "postback",
                         "label": "เปิดการ์ด",
-                        "data": `{"choice": "selectedDeck", "deck": "${deckData[i].deck_name}", "tag": null}`
+                        "data": `{"choice": "selectedDeck", "deck": "${deckData[i].deck_name}", "tag": null, "deck_id": "${deckData[i].deck_id}"}`
                         },
                         "style": "primary",
                         "height": "sm"

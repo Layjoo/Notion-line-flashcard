@@ -28,8 +28,7 @@ const port = process.env.PORT || 3000;
 
 //local variable
 let allDecks;
-
-getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID).then(data=> allDecks = data)
+getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID).then(data=> allDecks = data);
 
 //setting line
 const config = {
@@ -133,6 +132,7 @@ const pushCard = async (event) => {
             displayText: cardFront,
             card_id: card.card_id,
             deck: deck,
+            deck_id: deck_id,
             tag: tag
         }
 
@@ -167,22 +167,16 @@ const pushCard = async (event) => {
 
 const sendTagChoice = async (event) => {
     const data = JSON.parse(event.postback.data);
-    const {deck} = data;
-
-    //get deck id equal to deck name which user has selected.
-    const selectDeckObj = allDecks.filter(
-        (thisDeck) => thisDeck.deck_name == deck
-    );
-    const selectDeckId = selectDeckObj[0].deck_id;
+    const {deck, deck_id} = data;
 
     //get all tags
-    const allTags = await getAllTags(selectDeckId);
+    const allTags = await getAllTags(deck_id);
 
     //Modified send tag message
     const sendTagOptions = {
         displayText: "เลือก Tags",
         deck: deck,
-        deck_id: selectDeckId,
+        deck_id: deck_id,
         tags: allTags
     }
     const tagMessage = sendTag(sendTagOptions);
@@ -199,6 +193,7 @@ const sendCarouselDecks = async (event) => {
         const deckProps = await getAllPropsContent(deck.page_deck, ["deck", "today progress"]);
         const data = {
             deck_name: deckProps["deck"],
+            deck_id: deck.deck_id,
             progression: deckProps["today progress"]*100 + "%"
         }
         return data;
@@ -210,10 +205,9 @@ const sendCarouselDecks = async (event) => {
 
 const sendRemainCard = async (event) => {
     const data = JSON.parse(event.postback.data);
-    const {card_id, deck, tag} = data
+    const {deck, deck_id, tag} = data
 
     let remain;
-    let deckId;
     if(deck == "random"){
         //get today card
         const allDeckId = allDecks.map((thisDeck) => thisDeck.deck_id);
@@ -226,21 +220,17 @@ const sendRemainCard = async (event) => {
         remain = listOfTodayCard.length;
 
     }else if(tag == "random"){
-        const cardData = await retrievePage(card_id);
-        deckId = cardData.parent.database_id;
-        const deckCards = await getTodayCard(deckId);
+        const deckCards = await getTodayCard(deck_id);
         remain =  deckCards.length;
 
     }else{
-        const cardData = await retrievePage(card_id);
-        deckId = cardData.parent.database_id;
-        const tagCards = await getTagsCard(deckId, tag);
+        const tagCards = await getTagsCard(deck_id, tag);
         remain = tagCards.length;
     }
 
     //send continue message
     let sendContinueMessage;
-    sendContinueMessage = sendContinue(remain, deck, deckId, tag);
+    sendContinueMessage = sendContinue(remain, deck, deck_id, tag);
     if(remain===0){
         sendContinueMessage = lineMessage("ทวนการ์ดวันนี้ครบแล้ว");
     }
@@ -272,7 +262,7 @@ async function handleEvent(event) {
         console.log(event.postback.data)
 
         const data = JSON.parse(event.postback.data);
-        const {choice, card_id, deck, tag} = data;
+        const {choice, card_id, deck, deck_id, tag, card_state} = data;
 
         switch (choice) {
             case "selectedDeck":
@@ -287,7 +277,7 @@ async function handleEvent(event) {
                 return event;
             case "back":
                 //get notion card content from card_id
-                const backProps = await getAllPropsContent(card_id, ["front","back", "ease", "current", "date", "back image"]);
+                const backProps = await getAllPropsContent(card_id, ["front", "back", "ease", "current", "date", "back image"]);
                 const backImage = backProps["back image"];
 
                 //check cloze card
@@ -305,6 +295,7 @@ async function handleEvent(event) {
                     card_current: backProps.current,
                     card_date: backProps.date,
                     deck: deck,
+                    deck_id: deck_id,
                     tag: tag
                 }
 
@@ -341,14 +332,9 @@ async function handleEvent(event) {
                 return event;
             default:
                 //defalt for good hard easy again
-                const defaultProps = await getAllPropsContent(card_id, ["ease", "current", "date"]);
-
+                
                 //set new interval
-                const newIntervalCard = setCardInterval({
-                    card_current: defaultProps.current,
-                    card_ease: defaultProps.ease,
-                    card_date: defaultProps.date}, choice
-                );
+                const newIntervalCard = setCardInterval(card_state, choice);
 
                 //update card property
                 await updateCardInterval(card_id, newIntervalCard);
@@ -359,9 +345,7 @@ async function handleEvent(event) {
                 console.log("Remain card has sent!")
 
                 //update deck progression
-                const cardData = await retrievePage(card_id);
-                const deckId = cardData.parent.database_id;
-                await updateDeckProgression(deckId);
+                await updateDeckProgression(deck_id);
                 console.log("Update deck progression complete!")
                 
             return event;
@@ -397,6 +381,7 @@ app.get('/pushcard', async (req, res) => {
     res.send(response);
 })
 
+//update deck progression and update deck id when new deck has been created.
 app.get('/update_deck_progression', async (req, res) => {
     const response = await updateAllDeckProgression(process.env.FLASH_CARD_SETTING_DB_ID);
     //update allDecks variable every update deck progression has run.
