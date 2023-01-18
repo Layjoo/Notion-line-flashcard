@@ -157,7 +157,7 @@ const getCardContent = async ({ card_id, properties }, props) => {
     }
 
     if (propertyType == "date") {
-        return response.date.start;
+        return response.date && response.date.start;
     }
 };
 
