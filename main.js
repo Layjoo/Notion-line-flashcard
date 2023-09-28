@@ -186,11 +186,10 @@ const sendTagChoice = async (event) => {
 
 const sendCarouselDecks = async (event) => {
     const decksData = await Promise.all(allDecks.map(async (deck) => {
-        const deckProps = await getAllPropsContent(deck.page_deck, ["deck", "today progress"]);
+        const deckProps = await getAllPropsContent(deck.page_deck, ["deck"]);
         const data = {
             deck_name: deckProps["deck"],
             deck_id: deck.deck_id,
-            progression: deckProps["today progress"]*100 + "%"
         }
         return data;
     }))
