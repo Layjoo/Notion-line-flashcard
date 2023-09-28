@@ -86,6 +86,8 @@ const collectAllDecksinDB = async (databaseId) => {
         },
     });
 
+    console.log(response.results[0].properties.deck.title[0].plain_text)
+
     const listOfDatabaseID = response.results.map((list) =>
         list.id.replace(/-/g, "")
     );
@@ -97,6 +99,7 @@ const collectAllDecksinDB = async (databaseId) => {
 //return deck name and deck id
 const getAllDecks = async (FlashCardDBSettignId) => {
     const listOfEnablePageInDB = await collectAllDecksinDB(FlashCardDBSettignId);
+    console.log(listOfEnablePageInDB)
     const listOfDeckDB = await Promise.all(
         listOfEnablePageInDB.map(async (pageDeck) => {
             const childBlockOfDeck = await retrieveBlockChildren(pageDeck);
@@ -112,6 +115,7 @@ const getAllDecks = async (FlashCardDBSettignId) => {
 
     return listOfDeckDB;
 };
+
 
 //take card content by giving which card's props you want to retrive
 const getCardContent = async ({ card_id, properties }, props) => {
