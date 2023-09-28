@@ -18,8 +18,6 @@ const {
     getAllPropsContent,
     updateCardInterval,
     suspendCard,
-    updateDeckProgression,
-    updateAllDeckProgression
 } = require("./notion-api");
 const {setCardInterval} = require("./card");
 const line = require("@line/bot-sdk");
@@ -38,9 +36,7 @@ const config = {
 
 const client = new line.Client(config);
 
-////////////////////////////////////////////////////
 //functions which manipulate with event
-////////////////////////////////////////////////////
 const pushCard = async (event) => {
     const data = JSON.parse(event.postback.data);
     const {deck, tag, deck_id} = data;
@@ -344,10 +340,6 @@ async function handleEvent(event) {
                 await sendRemainCard(event);
                 console.log("Remain card has sent!")
 
-                //update deck progression
-                await updateDeckProgression(deck_id);
-                console.log("Update deck progression complete!")
-                
             return event;
         }
     }
@@ -381,11 +373,10 @@ app.get('/pushcard', async (req, res) => {
     res.send(response);
 })
 
-//update deck progression and update deck id when new deck has been created.
+//waking server
 app.get('/update_deck_progression', async (req, res) => {
-    const response = await updateAllDeckProgression(process.env.FLASH_CARD_SETTING_DB_ID);
-    //update allDecks variable every update deck progression has run.
-    allDecks = await getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID)
+    const response = "Server has woken up...";
+    console.log("Server has woken up...");
     res.send(response);
 })
 

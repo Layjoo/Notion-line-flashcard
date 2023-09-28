@@ -89,6 +89,8 @@ const collectAllDecksinDB = async (databaseId) => {
     const listOfDatabaseID = response.results.map((list) =>
         list.id.replace(/-/g, "")
     );
+
+    console.log(listOfDatabaseID);
     return listOfDatabaseID;
 };
 
@@ -105,6 +107,8 @@ const getAllDecks = async (FlashCardDBSettignId) => {
             return { deck_name: deckDBName, page_deck: pageDeck, deck_id: deckDBId };
         })
     );
+
+    console.log(listOfDeckDB)
 
     return listOfDeckDB;
 };
@@ -334,40 +338,6 @@ const suspendCard = async (cardId) => {
     return response;
 }
 
-const updateDeckProgression = async (deckId) => {
-
-    const deckData = await retrieveDB(deckId);
-    const mainPageDeckId = deckData.parent.page_id;
-
-    const databaseData = await queryDB(deckId);
-    const allCards = databaseData.results.length;
-
-    const todayCards = await getTodayCard(deckId);
-    const remain = todayCards.length;
-
-    const response = updatePageProps(mainPageDeckId, {
-        "All cards": {
-            "number": parseInt(allCards)
-        },
-        "Today cards": {
-            "number": parseInt(remain)
-        }
-    })
-
-    return response;
-}
-
-const updateAllDeckProgression = async (FlashCardDBSettignId) => {
-    const deckList = await getAllDecks(FlashCardDBSettignId);
-
-    await Promise.all(deckList.map(async (deck) => {
-        const response = await updateDeckProgression(deck.deck_id);
-        return response;
-    }))
-
-    return deckList;
-}
-
 module.exports = {
     getAllDecks,
     getTodayCard,
@@ -378,8 +348,6 @@ module.exports = {
     getAllPropsContent,
     updateCardInterval,
     suspendCard,
-    updateDeckProgression,
-    updateAllDeckProgression
 };
 
 
