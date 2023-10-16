@@ -355,7 +355,9 @@ const messageHandeler = async (event) => {
       }
 
       //Push message to user
-      await client.replyMessage(event.replyToken, replayMessage);
+      // await client.replyMessage(event.replyToken, replayMessage);
+      await client.replyMessage(event.replyToken, [backCardMessage]);
+      await client.replyMessage(event.replyToken, [...image]);
       console.log("Back Card has been sent!");
       return event;
     default:
