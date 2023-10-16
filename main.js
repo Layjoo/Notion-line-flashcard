@@ -331,6 +331,8 @@ const messageHandeler = async (event) => {
 
       //modified back card message
       let replayMessage;
+      let image;
+      let backCardMessage;
       const sendBackOptions = {
         displayText: backProps.back,
         card_id: cardInfo.card_id,
@@ -344,11 +346,11 @@ const messageHandeler = async (event) => {
 
       //check image card
       if (backImage.length !== 0) {
-        const image = await processImages(backImage);
+        image = await processImages(backImage);
         if (backProps.back == "") {
           sendBackOptions.displayText = "คำตอบจากรูป";
         }
-        const backCardMessage = sendBack(sendBackOptions);
+        backCardMessage = sendBack(sendBackOptions);
         replayMessage = [backCardMessage, ...image];
       } else {
         replayMessage = sendBack(sendBackOptions);
