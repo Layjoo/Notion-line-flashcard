@@ -86,6 +86,8 @@ const pushCard = async (event, postback = null) => {
     if (listOfTodayCard.length !== 0) {
       const card = randomCard(listOfTodayCard);
       cardId = card.card_id;
+      //update current card status
+      await updateCurrentCard(cardId, deck, tag);
 
       const frontProps = await getCardInfo(card.card_id);
       let cardFront = frontProps.front;
@@ -115,14 +117,17 @@ const pushCard = async (event, postback = null) => {
       }
     } else {
       //if auto push card and no card left
-      if (replyToken === "pushcard") return event;
+      if (replyToken === "pushcard"){
+        await updateCurrentCard(); //reset current card
+        console.log("Reset current card successfully! ✅")
+        return event;
+      }
 
       //if user push card and no card left
       replyMessage = lineMessage("ทวนการ์ดวันนี้ครบแล้ว");
+      await updateCurrentCard(); //reset current card
+      console.log("Reset current card successfully! ✅")
     }
-
-    //update current card status
-    await updateCurrentCard(cardId, deck, tag);
 
     //push front card to user
     if (replyToken === "pushcard") {
@@ -319,7 +324,7 @@ const messageHandeler = async (event) => {
             tag: "random",
           }),
         },
-        replyToken: "pushcard",
+        replyToken: event.replyToken,
       });
       return event;
     case "ต่อไป":

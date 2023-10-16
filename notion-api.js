@@ -318,13 +318,13 @@ const suspendCard = async (cardId) => {
   return response;
 };
 
-const updateCurrentCard = async (cardId, deck, tag, deck_id = null) => {
+const updateCurrentCard = async (cardId = null, deck = null, tag = null, deck_id = null) => {
   const Props = {
     "current card": [
       {
         type: "text",
         text: {
-          content: cardId.replace(/-/g, ""),
+          content: cardId ? cardId.replace(/-/g, ""): "",
         },
       },
     ],
