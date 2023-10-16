@@ -351,15 +351,13 @@ const messageHandeler = async (event) => {
           sendBackOptions.displayText = "คำตอบจากรูป";
         }
         backCardMessage = sendBack(sendBackOptions);
-        replayMessage = [backCardMessage, ...image];
+        replayMessage = [...image, backCardMessage];
       } else {
         replayMessage = sendBack(sendBackOptions);
       }
 
       //Push message to user
-      // await client.replyMessage(event.replyToken, replayMessage);
-      await client.replyMessage(event.replyToken, [backCardMessage]);
-      await client.replyMessage(event.replyToken, [...image]);
+      await client.replyMessage(event.replyToken, replayMessage);
       console.log("Back Card has been sent!");
       return event;
     default:
