@@ -7,6 +7,8 @@ const {
   lineMessage,
   carouselImg,
   decksCarousel,
+  imageMessage,
+  processImages,
 } = require("./line-api");
 const {
   getAllDecks,
@@ -14,32 +16,33 @@ const {
   randomCard,
   getAllTags,
   getTagsCard,
-  getAllPropsContent,
   updateCardInterval,
   suspendCard,
   updateCurrentCard,
-  updateCurrentCardInterval,
+  getCurrentCardProps,
+  getCardInfo,
+  getDeckName,
 } = require("./notion-api");
 const { setCardInterval } = require("./card");
 const line = require("@line/bot-sdk");
 const app = require("express")();
 const port = process.env.PORT || 3000;
 
-//local variable
+//////////////////////// Update local variable ////////////////////////////
 let allDecks;
 
 const updateAllDecks = () => {
   getAllDecks(process.env.FLASH_CARD_SETTING_DB_ID).then((data) => {
     allDecks = data;
-    console.log("allDecks updated.");
+    console.log("All Decks updated successfully! ✅");
   });
 };
 
 updateAllDecks();
 
-const interval = setInterval(updateAllDecks, 60 * 1000);
+setInterval(updateAllDecks, 60 * 1000);
 
-//setting line
+//////////////////////// Setting Line API ////////////////////////////
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
@@ -47,10 +50,23 @@ const config = {
 
 const client = new line.Client(config);
 
-//functions which manipulate with event
-const pushCard = async (event) => {
-  const data = JSON.parse(event.postback.data);
-  let { deck, tag, deck_id } = data;
+//////////////////////// Event function ////////////////////////////
+const pushCard = async (event, postback = null) => {
+  let deck
+  let tag
+  let deck_id
+
+  if(!postback) {
+    const data = JSON.parse(event.postback.data);
+    deck = data.deck;
+    tag = data.tag;
+    deck_id = data.deck_id;
+  }else{
+    deck = postback.deck;
+    tag = postback.tag;
+    deck_id = postback.deck_id;
+  }
+    
   const replyToken = event.replyToken;
   let replyMessage;
   let cardId;
@@ -73,10 +89,7 @@ const pushCard = async (event) => {
       const card = randomCard(listOfTodayCard);
       cardId = card.card_id;
 
-      const frontProps = await getAllPropsContent(card.card_id, [
-        "front",
-        "front image",
-      ]);
+      const frontProps = await getCardInfo(card.card_id);
       let cardFront = frontProps.front;
       const frontImage = frontProps["front image"];
 
@@ -93,12 +106,12 @@ const pushCard = async (event) => {
 
       //check front image
       if (frontImage.length !== 0) {
-        const carousel = carouselImg(frontImage);
+        const image = await processImages(frontImage);
         if (cardFront == "") {
           sendCardOptions.displayText = "ตอบคำถามจากรูป";
         }
         const frontCardMessage = sendCard(sendCardOptions);
-        replyMessage = [carousel, frontCardMessage];
+        replyMessage = [...image, frontCardMessage];
       } else {
         replyMessage = sendCard(sendCardOptions);
       }
@@ -132,18 +145,17 @@ const pushCard = async (event) => {
   } else {
     //get card which filter with tag in deck
     listOfAllCards = await getTagsCard(deck_id, tag);
-    console.log("get tag card");
+    console.log("Get tag card");
   }
 
   if (listOfAllCards.length !== 0) {
     //random and get front content of card
     const card = randomCard(listOfAllCards);
     cardId = card.card_id;
+    //update current card status
+    await updateCurrentCard(cardId, deck, tag, deck_id);
 
-    const frontProps = await getAllPropsContent(card.card_id, [
-      "front",
-      "front image",
-    ]);
+    const frontProps = await getCardInfo(card.card_id);
     let cardFront = frontProps.front;
     const frontImage = frontProps["front image"];
 
@@ -162,21 +174,18 @@ const pushCard = async (event) => {
 
     //check front image
     if (frontImage.length !== 0) {
-      const carousel = carouselImg(frontImage);
+      const image = await processImages(frontImage);
       if (cardFront == "") {
         sendCardOptions.displayText = "ตอบคำถามจากรูป";
       }
       const frontCardMessage = sendCard(sendCardOptions);
-      replyMessage = [carousel, frontCardMessage];
+      replyMessage = [...image, frontCardMessage];
     } else {
       replyMessage = sendCard(sendCardOptions);
     }
   } else {
     replyMessage = lineMessage("ทวนการ์ดวันนี้หมดแล้ว");
   }
-
-  //update current card status
-  await updateCurrentCard(cardId, deck, tag, deck_id);
 
   //push front card to user
   if (replyToken) {
@@ -213,7 +222,7 @@ const sendTagChoice = async (event) => {
 const sendCarouselDecks = async (event) => {
   const decksData = await Promise.all(
     allDecks.map(async (deck) => {
-      const deckProps = await getAllPropsContent(deck.page_deck, ["deck"]);
+      const deckProps = await getDeckName(deck.page_deck);
       const data = {
         deck_name: deckProps["deck"],
         deck_id: deck.deck_id,
@@ -271,241 +280,204 @@ const sendRemainCard = async (
   return event;
 };
 
-////////////////////////////////////////////////////
-// event handler
-////////////////////////////////////////////////////
+//////////////////////// Event Handler ////////////////////////////
 async function handleEvent(event) {
-  //check for message
-  if (event.type == "message") {
-    const currentCard = await getAllPropsContent(
-      "ee2bcefaef7a43cba312120ddf040373",
-      ["current card", "deck", "tag", "deck_id", "ease", "current", "date"]
-    );
-
-    const currentCardInfo = {
-      card_id: currentCard["current card"],
-      deck: currentCard.deck,
-      tag: currentCard.tag,
-      deck_id: currentCard.deck_id,
-      card_state: {
-        card_ease: currentCard.ease,
-        card_current: currentCard.current,
-        card_date: currentCard.date,
-      },
-    };
-
-    const { card_id, deck, tag, deck_id, card_state } = currentCardInfo;
-
-    console.log(currentCard);
-    switch (event.message.text) {
-      case "open card":
-        await sendCarouselDecks(event);
-        return event;
-      case "เฉลย":
-        //get notion card content from card_id
-        const backProps = await getAllPropsContent(card_id, [
-          "front",
-          "back",
-          "ease",
-          "current",
-          "date",
-          "back image",
-        ]);
-        const backImage = backProps["back image"];
-
-        console.log(backImage);
-
-        //check cloze card
-        if (backProps.front.match(/\?\?/g)) {
-          const clozeOrigianal = backProps.front.replace(/\?\?/g, "");
-          backProps.back = clozeOrigianal;
-        }
-
-        //modified back card message
-        let replayMessage;
-        const sendBackOptions = {
-          displayText: backProps.back,
-          card_id: card_id,
-          card_ease: backProps.ease,
-          card_current: backProps.current,
-          card_date: backProps.date,
-          deck: deck,
-          deck_id: deck_id,
-          tag: tag,
-        };
-
-        //check image card
-        if (backImage.length !== 0) {
-          const carousel = carouselImg(backImage);
-          if (backProps.back == "") {
-            sendBackOptions.displayText = "คำตอบจากรูป";
-          }
-          const backCardMessage = sendBack(sendBackOptions);
-          replayMessage = [carousel, backCardMessage];
-        } else {
-          replayMessage = sendBack(sendBackOptions);
-        }
-
-        //update current card interval
-        await updateCurrentCardInterval(
-          backProps.ease,
-          backProps.current,
-          backProps.date
-        );
-
-        //Push message to user
-        await client.replyMessage(event.replyToken, replayMessage);
-        console.log("Back Card has been sent!");
-        return event;
-      case "good":
-        //update card property
-        await updateCardInterval(card_id, setCardInterval(card_state, "good"));
-        console.log(`Card has been updated for good selection`);
-
-        //send remain card to user
-        await sendRemainCard(event, deck, deck_id, tag);
-        console.log("Remain card has sent!");
-
-        return event;
-      case "hard":
-        //update card property
-        await updateCardInterval(card_id, setCardInterval(card_state, "hard"));
-        console.log(`Card has been updated for hard selection`);
-
-        //send remain card to user
-        await sendRemainCard(event, deck, deck_id, tag);
-        console.log("Remain card has sent!");
-
-        return event;
-      case "easy":
-        //update card property
-        await updateCardInterval(card_id, setCardInterval(card_state, "easy"));
-        console.log(`Card has been updated for easy selection`);
-
-        //send remain card to user
-        await sendRemainCard(event, deck, deck_id, tag);
-        console.log("Remain card has sent!");
-
-        return event;
-      case "again":
-        //update card property
-        await updateCardInterval(card_id, setCardInterval(card_state, "again"));
-        console.log(`Card has been updated for again selection`);
-
-        //send remain card to user
-        await sendRemainCard(event, deck, deck_id, tag);
-        console.log("Remain card has sent!");
-
-        return event;
-      default:
-        break;
-    }
+  const eventType = event.type;
+  console.log(`New event ✨`);
+  if (eventType === "message") {
+    console.log(`Message: ${event.message.text}`);
+  }
+  if (eventType === "postback") {
+    console.log(`Postback: ${JSON.parse(event.postback.data).choice}`);
   }
 
-  //check for postback
-  if (event.type == "postback") {
-    console.log(event.postback.data);
+  switch (eventType) {
+    case "follow":
+      await followHandeler(event);
+      break;
+    case "message":
+      await messageHandeler(event);
+      break;
+    case "postback":
+      await postbackHandler(event);
+      break;
+    default:
+      console.log(`Unsupported event type: ${eventType}`);
+  }
+}
 
-    const data = JSON.parse(event.postback.data);
-    const { choice, card_id, deck, deck_id, tag, card_state } = data;
+//message event
+const messageHandeler = async (event) => {
+  let cardInfo;
+  switch (event.message.text) {
+    case "open card":
+      await sendCarouselDecks(event);
+      return event;
+    case "ต่อไป": 
+      cardInfo = await getCurrentCardProps();
+      await pushCard(event, {deck: cardInfo.deck, tag: cardInfo.tag, deck_id: cardInfo.deck_id});
+      return event;
+    case "เฉลย":
+      //get current card info
+      cardInfo = await getCurrentCardProps();
 
-    switch (choice) {
-      case "selectedDeck":
-        if (deck == "random") {
-          await pushCard(event);
-          return event;
+      //get notion card content from card_id
+      const backProps = await getCardInfo(cardInfo.card_id);
+      const backImage = backProps["back image"];
+
+      //check cloze card
+      if (backProps.front.match(/\?\?/g)) {
+        const clozeOrigianal = backProps.front.replace(/\?\?/g, "");
+        backProps.back = clozeOrigianal;
+      }
+
+      //modified back card message
+      let replayMessage;
+      const sendBackOptions = {
+        displayText: backProps.back,
+        card_id: cardInfo.card_id,
+        card_ease: backProps.ease,
+        card_current: backProps.current,
+        card_date: backProps.date,
+        deck: cardInfo.deck,
+        deck_id: cardInfo.deck_id,
+        tag: cardInfo.tag,
+      };
+
+      //check image card
+      if (backImage.length !== 0) {
+        const image = await processImages(backImage);
+        if (backProps.back == "") {
+          sendBackOptions.displayText = "คำตอบจากรูป";
         }
-        await sendTagChoice(event);
-        return event;
-      case "selectedTag":
-        await pushCard(event);
-        return event;
-      case "back":
-        //get notion card content from card_id
-        const backProps = await getAllPropsContent(card_id, [
-          "front",
-          "back",
-          "ease",
-          "current",
-          "date",
-          "back image",
-        ]);
-        const backImage = backProps["back image"];
+        const backCardMessage = sendBack(sendBackOptions);
+        replayMessage = [...image, backCardMessage];
+      } else {
+        replayMessage = sendBack(sendBackOptions);
+      }
 
-        console.log(backImage);
-
-        //check cloze card
-        if (backProps.front.match(/\?\?/g)) {
-          const clozeOrigianal = backProps.front.replace(/\?\?/g, "");
-          backProps.back = clozeOrigianal;
-        }
-
-        //modified back card message
-        let replayMessage;
-        const sendBackOptions = {
-          displayText: backProps.back,
-          card_id: card_id,
-          card_ease: backProps.ease,
-          card_current: backProps.current,
-          card_date: backProps.date,
-          deck: deck,
-          deck_id: deck_id,
-          tag: tag,
+      //Push message to user
+      await client.replyMessage(event.replyToken, replayMessage);
+      console.log("Back Card has been sent!");
+      return event;
+    default:
+      //defalt for good hard easy again
+      const choice = event.message.text;
+      const choiceList = ["good", "hard", "easy", "again"];
+      if (choiceList.includes(choice)) {
+        const current = await getCurrentCardProps();
+        const card = await getCardInfo(current.card_id);
+        const card_state = {
+          card_current: card.current,
+          card_ease: card.ease,
+          card_date: card.date,
         };
-
-        //check image card
-        if (backImage.length !== 0) {
-          const carousel = carouselImg(backImage);
-          if (backProps.back == "") {
-            sendBackOptions.displayText = "คำตอบจากรูป";
-          }
-          const backCardMessage = sendBack(sendBackOptions);
-          replayMessage = [carousel, backCardMessage];
-        } else {
-          replayMessage = sendBack(sendBackOptions);
-        }
-
-        //Push message to user
-        await client.replyMessage(event.replyToken, replayMessage);
-        console.log("Back Card has been sent!");
-        return event;
-      case "next":
-        //send next card
-        await pushCard(event);
-        return event;
-      case "suspend":
-        //update property to disable
-        await suspendCard(card_id);
-        //send remain card
-        await sendRemainCard(event);
-        return event;
-      case "later":
-        return event;
-      default:
-        //defalt for good hard easy again
 
         //set new interval
         const newIntervalCard = setCardInterval(card_state, choice);
 
         //update card property
-        await updateCardInterval(card_id, newIntervalCard);
+        await updateCardInterval(current.card_id, newIntervalCard);
         console.log(`Card has been updated for ${choice} selection`);
 
         //send remain card to user
-        await sendRemainCard(event);
+        await sendRemainCard(event, current.deck, current.deck_id, current.tag);
         console.log("Remain card has sent!");
 
         return event;
-    }
+      }
+      break;
   }
+};
 
-  return event;
-}
+//postback event
+const postbackHandler = async (event) => {
+  const data = JSON.parse(event.postback.data);
+  const { choice, card_id, deck, deck_id, tag, card_state } = data;
 
-////////////////////////////////////////////////////
-//server
-////////////////////////////////////////////////////
+  switch (choice) {
+    case "selectedDeck":
+      if (deck == "random") {
+        await pushCard(event);
+        return event;
+      }
+      await sendTagChoice(event);
+      return event;
+    case "selectedTag":
+      await pushCard(event);
+      return event;
+    case "back":
+      //get notion card content from card_id
+      //get notion card content from card_id
+      const backProps = await getCardInfo(card_id);
+      const backImage = backProps["back image"];
 
+      //check cloze card
+      if (backProps.front.match(/\?\?/g)) {
+        const clozeOrigianal = backProps.front.replace(/\?\?/g, "");
+        backProps.back = clozeOrigianal;
+      }
+
+      //modified back card message
+      let replayMessage;
+      const sendBackOptions = {
+        displayText: backProps.back,
+        card_id: card_id,
+        card_ease: backProps.ease,
+        card_current: backProps.current,
+        card_date: backProps.date,
+        deck: deck,
+        deck_id: deck_id,
+        tag: tag,
+      };
+
+      //check image card
+      if (backImage.length !== 0) {
+        const image = await processImages(backImage);
+        if (backProps.back == "") {
+          sendBackOptions.displayText = "คำตอบจากรูป";
+        }
+        const backCardMessage = sendBack(sendBackOptions);
+        replayMessage = [...image, backCardMessage];
+      } else {
+        replayMessage = sendBack(sendBackOptions);
+      }
+
+      //Push message to user
+      await client.replyMessage(event.replyToken, replayMessage);
+      console.log("Back Card has been sent!");
+      return event;
+    case "next":
+      //send next card
+      await pushCard(event);
+      return event;
+    case "suspend":
+      //update property to disable
+      await suspendCard(card_id);
+      //send remain card
+      await sendRemainCard(event);
+      return event;
+    case "later":
+      return event;
+    default:
+      //defalt for good hard easy again
+
+      //set new interval
+      const newIntervalCard = setCardInterval(card_state, choice);
+
+      //update card property
+      await updateCardInterval(card_id, newIntervalCard);
+      console.log(`Card has been updated for ${choice} selection`);
+
+      //send remain card to user
+      await sendRemainCard(event);
+      console.log("Remain card has sent!");
+
+      return event;
+  }
+};
+
+//////////////////////// Server ////////////////////////////
 //webhook
 app.post("/callback", line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))

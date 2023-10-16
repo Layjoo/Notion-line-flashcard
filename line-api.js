@@ -1,4 +1,5 @@
 const {setCardInterval} = require("./card")
+const fetch = require('node-fetch');
 
 const sendBack = ({displayText, card_id, card_ease, card_current, card_date, tag, deck, deck_id}) => {
 
@@ -224,7 +225,7 @@ const carouselImg = (images) => {
         carousel.contents.contents.push(bubble(image))
     });
 
-    return carousel;
+    return [carousel];
 }
 
 const decksCarousel = (deckData) => {
@@ -326,6 +327,52 @@ const decksCarousel = (deckData) => {
     return carousel;
 }
 
+async function processImages(imageURLs) {
+    const modifiedImages = [];
+    let shouldUseCarousel = false;
+
+    for (const imageURL of imageURLs) {
+        try {
+            const response = await fetch(imageURL, { method: 'HEAD' });
+            if (response.status === 200) {
+                const contentLength = response.headers.get('content-length');
+
+                const url = new URL(imageURL);
+
+                if (url.hostname === "imgur.com") {
+                    modifiedImages.push({
+                        "type": "image",
+                        "originalContentUrl": imageURL.replace(".png", "l.png"),
+                        "previewImageUrl": imageURL.replace(".png", "s.png")
+                    });
+                } else if (imageURL.endsWith(".png") || imageURL.endsWith(".jpg")) {
+                    if (contentLength <= 10485760) { // 10MB for originalContentUrl
+                        modifiedImages.push({
+                            "type": "image",
+                            "originalContentUrl": imageURL,
+                            "previewImageUrl": imageURL
+                        });
+                    } else {
+                        shouldUseCarousel = true;
+                    }
+                } else {
+                    shouldUseCarousel = true;
+                }
+            } else {
+                shouldUseCarousel = true;
+            }
+        } catch (error) {
+            console.error("Error fetching image:", error);
+            shouldUseCarousel = true;
+        }
+    }
+
+    if (shouldUseCarousel) {
+        return carouselImg(imageURLs);
+    }
+
+    return modifiedImages;
+}
 
 module.exports = {
     sendBack,
@@ -334,5 +381,6 @@ module.exports = {
     sendContinue,
     lineMessage,
     carouselImg,
-    decksCarousel
+    decksCarousel,
+    processImages
 };

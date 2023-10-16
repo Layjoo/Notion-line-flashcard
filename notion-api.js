@@ -11,9 +11,8 @@ const getCurrentTime = () => {
 };
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-//////////////////////////////////////////
-//Original function of notion api
-//////////////////////////////////////////
+
+//////////////////////// Original function of notion api ////////////////////////////
 const retrieveBlockChildren = async (blockId) => {
   const response = await notion.blocks.children.list({
     block_id: blockId,
@@ -33,7 +32,7 @@ const queryDB = async (databaseId, filterCondition = null) => {
     database_id: databaseId,
   };
 
-  if (filterCondition !== null) {
+  if (filterCondition) {
     options.filter = filterCondition;
   }
 
@@ -70,9 +69,7 @@ const retrievePage = async (pageId) => {
   return response;
 };
 
-//////////////////////////////////////////
-//Modifild notion api for Flashcard bot
-//////////////////////////////////////////
+//////////////////////// Modifild notion api for Flashcard bot ////////////////////////////
 
 //get only page id in database with enable status
 const collectAllDecksinDB = async (databaseId) => {
@@ -86,20 +83,16 @@ const collectAllDecksinDB = async (databaseId) => {
     },
   });
 
-  console.log(response.results[0].properties.deck.title[0].plain_text);
-
   const listOfDatabaseID = response.results.map((list) =>
     list.id.replace(/-/g, "")
   );
 
-  console.log(listOfDatabaseID);
   return listOfDatabaseID;
 };
 
 //return deck name and deck id
 const getAllDecks = async (FlashCardDBSettignId) => {
   const listOfEnablePageInDB = await collectAllDecksinDB(FlashCardDBSettignId);
-  console.log(listOfEnablePageInDB);
   const listOfDeckDB = await Promise.all(
     listOfEnablePageInDB.map(async (pageDeck) => {
       const childBlockOfDeck = await retrieveBlockChildren(pageDeck);
@@ -110,63 +103,7 @@ const getAllDecks = async (FlashCardDBSettignId) => {
       return { deck_name: deckDBName, page_deck: pageDeck, deck_id: deckDBId };
     })
   );
-
-  console.log(listOfDeckDB);
-
   return listOfDeckDB;
-};
-
-//take card content by giving which card's props you want to retrive
-const getCardContent = async ({ card_id, properties }, props) => {
-  const response = await retrievePagePropsItems(card_id, properties[props].id);
-  const propertyType = response.type;
-
-  let cardContent;
-
-  if (propertyType == "property_item") {
-    if (response.property_item.type === "rich_text") {
-      const textList = response.results.map((results) => {
-        const isClozeCard = results.rich_text.annotations.code;
-        if (isClozeCard && props == "front")
-          return `??${results.rich_text.plain_text}??`;
-
-        return results.rich_text.plain_text;
-      });
-
-      cardContent = textList.join("");
-    }
-
-    if (response.property_item.type == "title") {
-      return response.results[0].title.plain_text;
-    }
-
-    return cardContent;
-  }
-
-  if (propertyType == "files") {
-    const filesUrl = response.files.map((file) => {
-      if (file.type == "external") return file.external.url;
-      return file.file.url;
-    });
-
-    return filesUrl;
-  }
-
-  if (propertyType == "number") {
-    return response.number;
-  }
-
-  if (propertyType == "select") {
-    return response.select && response.select.name;
-  }
-
-  if (propertyType == "formula") {
-    return response.formula[response.formula.type];
-  }
-
-  if (propertyType == "date") {
-    return response.date && response.date.start;
-  }
 };
 
 //filter only enable cards, today cards and overdue cards from given list of decks
@@ -301,19 +238,54 @@ const getAllTags = async (deckId) => {
   return allTags;
 };
 
-const getAllPropsContent = async (cardId, takingProps) => {
-  const page = await retrievePage(cardId);
-  const card = { card_id: cardId, properties: page.properties };
+const getDeckName = async (deckId) => {
+  const response = await notion.pages.retrieve({ page_id: deckId });
+  const deckInfo = {
+    deck: response.properties.deck.title[0].plain_text,
+  };
+  return deckInfo;
+};
 
-  const cardContent = {};
+//check cloze card
+const modifiedFrontProps = (frontProps) => {
+  const textList = frontProps.map((text) => {
+    const isClozeCard = text.annotations.code;
+    if (isClozeCard)
+      return `??${text.plain_text}??`;
 
-  await Promise.all(
-    takingProps.map(async (prop) => {
-      cardContent[prop] = await getCardContent(card, prop);
-    })
-  );
+    return text.plain_text;
+  });
 
+  const cardContent = textList.join("");
+  console.log(cardContent)
   return cardContent;
+} 
+
+const getCardInfo = async (cardId) => {
+  const response = await notion.pages.retrieve({ page_id: cardId });
+  const cardInfo = {
+    front: modifiedFrontProps(response.properties.front.rich_text),
+    back: response.properties.back.rich_text[0]?.plain_text || "",
+    ease: response.properties.ease.number,
+    current: response.properties.current.number,
+    date: response.properties.date.date.start,
+    "back image":
+      response.properties["back image"].files.length > 0
+        ? response.properties["back image"].files.map((file) => {
+            if (file.type == "external") return file.external.url;
+            return file.file.url;
+          })
+        : [],
+    "front image":
+      response.properties["front image"].files.length > 0
+        ? response.properties["front image"].files.map((file) => {
+            if (file.type == "external") return file.external.url;
+            return file.file.url;
+          })
+        : [],
+  };
+
+  return cardInfo;
 };
 
 const updateCardInterval = async (cardId, { ease, current, date }) => {
@@ -382,18 +354,93 @@ const updateCurrentCard = async (cardId, deck, tag, deck_id = null) => {
     ],
   };
 
-  console.log(Props);
-
   await updatePageProps("ee2bcefaef7a43cba312120ddf040373", Props);
   console.log(`Update current card status: ${cardId} ✅`);
 };
 
-const updateCurrentCardInterval = async (ease, current, date) => {
-    await updateCardInterval("ee2bcefaef7a43cba312120ddf040373", {ease, current, date})
-    console.log("Update current card interval ✅")
-}
+const getCurrentCardProps = async () => {
+  const response = await queryDB("422d28e9d6104471bd02b0c97016b3cb");
+  const props = response.results.map((entry) => ({
+    tag: entry.properties["tag"].rich_text[0].plain_text,
+    deck_id: entry.properties["deck_id"].rich_text[0].plain_text,
+    deck: entry.properties["deck"].rich_text[0].plain_text,
+    card_id: entry.properties["current card"].title[0].plain_text || "",
+  }));
+  console.log(props);
+  return props[0];
+};
 
+//////////////////////// Deprecated function ////////////////////////////
+//take card content by giving which card's props you want to retrive
+const getCardContent = async ({ card_id, properties }, props) => {
+  const response = await retrievePagePropsItems(card_id, properties[props].id);
+  const propertyType = response.type;
 
+  let cardContent;
+
+  if (propertyType == "property_item") {
+    if (response.property_item.type === "rich_text") {
+      const textList = response.results.map((results) => {
+        const isClozeCard = results.rich_text.annotations.code;
+        if (isClozeCard && props == "front")
+          return `??${results.rich_text.plain_text}??`;
+
+        return results.rich_text.plain_text;
+      });
+
+      cardContent = textList.join("");
+    }
+
+    if (response.property_item.type == "title") {
+      return response.results[0].title.plain_text;
+    }
+
+    return cardContent;
+  }
+
+  if (propertyType == "files") {
+    const filesUrl = response.files.map((file) => {
+      if (file.type == "external") return file.external.url;
+      return file.file.url;
+    });
+
+    return filesUrl;
+  }
+
+  if (propertyType == "number") {
+    return response.number;
+  }
+
+  if (propertyType == "select") {
+    return response.select && response.select.name;
+  }
+
+  if (propertyType == "formula") {
+    return response.formula[response.formula.type];
+  }
+
+  if (propertyType == "date") {
+    return response.date && response.date.start;
+  }
+};
+
+const getAllPropsContent = async (cardId, takingProps) => {
+  const page = await retrievePage(cardId);
+
+  const card = { card_id: cardId, properties: page.properties };
+
+  const cardContent = {};
+
+  await Promise.all(
+    takingProps.map(async (prop) => {
+      cardContent[prop] = await getCardContent(card, prop);
+    })
+  );
+
+  return cardContent;
+};
+
+(async () => {})();
 
 module.exports = {
   getAllDecks,
@@ -401,12 +448,12 @@ module.exports = {
   randomCard,
   getAllTags,
   getTagsCard,
-  retrievePage,
-  getAllPropsContent,
   updateCardInterval,
-  updateCurrentCard,
   suspendCard,
-  updateCurrentCardInterval,
+  updateCurrentCard,
+  getCurrentCardProps,
+  getCardInfo,
+  getDeckName,
 };
 
 //ee2bcefa-ef7a-43cb-a312-120ddf040373
