@@ -50,21 +50,21 @@ const client = new line.Client(config);
 
 //////////////////////// Event function ////////////////////////////
 const pushCard = async (event, postback = null) => {
-  let deck
-  let tag
-  let deck_id
+  let deck;
+  let tag;
+  let deck_id;
 
-  if(!postback) {
+  if (!postback) {
     const data = JSON.parse(event.postback.data);
     deck = data.deck;
     tag = data.tag;
     deck_id = data.deck_id;
-  }else{
+  } else {
     deck = postback.deck;
     tag = postback.tag;
     deck_id = postback.deck_id;
   }
-    
+
   const replyToken = event.replyToken;
   let replyMessage;
   let cardId;
@@ -311,9 +311,24 @@ const messageHandeler = async (event) => {
     case "open card":
       await sendCarouselDecks(event);
       return event;
-    case "ต่อไป": 
+    case "สุ่มการ์ด":
+      await pushCard({
+        postback: {
+          data: JSON.stringify({
+            deck: "random",
+            tag: "random",
+          }),
+        },
+        replyToken: "pushcard",
+      });
+      return event;
+    case "ต่อไป":
       cardInfo = await getCurrentCardProps();
-      await pushCard(event, {deck: cardInfo.deck, tag: cardInfo.tag, deck_id: cardInfo.deck_id});
+      await pushCard(event, {
+        deck: cardInfo.deck,
+        tag: cardInfo.tag,
+        deck_id: cardInfo.deck_id,
+      });
       return event;
     case "เฉลย":
       //get current card info
