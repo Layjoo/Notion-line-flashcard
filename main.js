@@ -5,9 +5,7 @@ const {
   sendTag,
   sendContinue,
   lineMessage,
-  carouselImg,
   decksCarousel,
-  imageMessage,
   processImages,
 } = require("./line-api");
 const {
@@ -351,7 +349,7 @@ const messageHandeler = async (event) => {
           sendBackOptions.displayText = "คำตอบจากรูป";
         }
         const backCardMessage = sendBack(sendBackOptions);
-        replayMessage = [...image, backCardMessage];
+        replayMessage = [backCardMessage, ...image];
       } else {
         replayMessage = sendBack(sendBackOptions);
       }
@@ -438,7 +436,7 @@ const postbackHandler = async (event) => {
           sendBackOptions.displayText = "คำตอบจากรูป";
         }
         const backCardMessage = sendBack(sendBackOptions);
-        replayMessage = [...image, backCardMessage];
+        replayMessage = [backCardMessage, ...image];
       } else {
         replayMessage = sendBack(sendBackOptions);
       }
