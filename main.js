@@ -26,7 +26,7 @@ const line = require("@line/bot-sdk");
 const app = require("express")();
 const port = process.env.PORT || 3000;
 
-//////////////////////// Update local variable ////////////////////////////
+//////////////////////// 1. Update local variable ////////////////////////////
 let allDecks;
 
 const updateAllDecks = () => {
@@ -40,7 +40,7 @@ updateAllDecks();
 
 setInterval(updateAllDecks, 60 * 1000);
 
-//////////////////////// Setting Line API ////////////////////////////
+//////////////////////// 2. Setting Line API ////////////////////////////
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
@@ -48,24 +48,14 @@ const config = {
 
 const client = new line.Client(config);
 
-//////////////////////// Event function ////////////////////////////
-const pushCard = async (event, postback = null) => {
-  let deck;
-  let tag;
-  let deck_id;
-
-  if (!postback) {
-    const data = JSON.parse(event.postback.data);
-    deck = data.deck;
-    tag = data.tag;
-    deck_id = data.deck_id;
-  } else {
-    deck = postback.deck;
-    tag = postback.tag;
-    deck_id = postback.deck_id;
-  }
-
+//////////////////////// 3. Event Function ////////////////////////////
+const pushCard = async (event) => {
+  const data = JSON.parse(event.postback.data);
+  const deck = data.deck;
+  const tag = data.tag;
+  const deck_id = data.deck_id;
   const replyToken = event.replyToken;
+  const actionType = event.action_type ? event.action_type : null;
   let replyMessage;
   let cardId;
 
@@ -82,7 +72,7 @@ const pushCard = async (event, postback = null) => {
       })
     );
 
-    //prepare front card
+    //prepare front card if there is card left
     if (listOfTodayCard.length !== 0) {
       const card = randomCard(listOfTodayCard);
       cardId = card.card_id;
@@ -116,17 +106,18 @@ const pushCard = async (event, postback = null) => {
         replyMessage = sendCard(sendCardOptions);
       }
     } else {
-      //if auto push card and no card left
-      if (replyToken === "pushcard"){
-        await updateCurrentCard(); //reset current card
-        console.log("Reset current card successfully! ✅")
+      //if auto push card from server or message and no card left
+      if (replyToken === "pushcard" || actionType === "message") {
+        //reset current card status
+        await updateCurrentCard();
+        console.log("Reset current card successfully! ✅");
         return event;
       }
 
-      //if user push card and no card left
+      //if user send message in line aplication and no card left
       replyMessage = lineMessage("ทวนการ์ดวันนี้ครบแล้ว");
       await updateCurrentCard(); //reset current card
-      console.log("Reset current card successfully! ✅")
+      console.log("Reset current card successfully! ✅");
     }
 
     //push front card to user
@@ -283,7 +274,7 @@ const sendRemainCard = async (
   return event;
 };
 
-//////////////////////// Event Handler ////////////////////////////
+//////////////////////// 4. Event Handler ////////////////////////////
 async function handleEvent(event) {
   const eventType = event.type;
   console.log(`New event ✨`);
@@ -325,6 +316,7 @@ const messageHandeler = async (event) => {
           }),
         },
         replyToken: event.replyToken,
+        action_type: "message",
       });
       return event;
     case "ต่อไป":
@@ -497,7 +489,7 @@ const postbackHandler = async (event) => {
   }
 };
 
-//////////////////////// Server ////////////////////////////
+//////////////////////// 5. Server ////////////////////////////
 //webhook
 app.post("/callback", line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
@@ -524,9 +516,9 @@ app.get("/pushcard", async (req, res) => {
 });
 
 //waking server
-app.get("/update_deck_progression", async (req, res) => {
+app.get("/waking", async (req, res) => {
   const response = "Server has woken up...";
-  console.log("Server has woken up...");
+  console.log("Server has woken up 🚀");
   res.send(response);
 });
 

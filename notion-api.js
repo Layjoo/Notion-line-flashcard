@@ -355,7 +355,7 @@ const updateCurrentCard = async (cardId = null, deck = null, tag = null, deck_id
   };
 
   await updatePageProps("ee2bcefaef7a43cba312120ddf040373", Props);
-  console.log(`Update current card status: ${cardId} ✅`);
+  console.log(cardId ? `Update current card status: ${cardId} ✅` : "No card to update status ❌");
 };
 
 const getCurrentCardProps = async () => {
