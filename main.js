@@ -321,10 +321,16 @@ const messageHandeler = async (event) => {
       return event;
     case "ต่อไป":
       cardInfo = await getCurrentCardProps();
-      await pushCard(event, {
-        deck: cardInfo.deck,
-        tag: cardInfo.tag,
-        deck_id: cardInfo.deck_id,
+      await pushCard({
+        postback: {
+          data: JSON.stringify({
+            deck: cardInfo.deck,
+            tag: cardInfo.tag,
+            deck_id: cardInfo.deck_id
+          }),
+        },
+        replyToken: event.replyToken,
+        action_type: "message",
       });
       return event;
     case "เฉลย":
