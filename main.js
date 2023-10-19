@@ -398,9 +398,17 @@ const messageHandeler = async (event) => {
         await updateCardInterval(current.card_id, newIntervalCard);
         console.log(`Card has been updated for ${choice} selection`);
 
-        //send remain card to user
-        await sendRemainCard(event, current.deck, current.deck_id, current.tag);
-        console.log("Remain card has sent!");
+        //push another card to user
+        await pushCard({
+          postback: {
+            data: JSON.stringify({
+              deck: "random",
+              tag: "random",
+            }),
+          },
+          replyToken: event.replyToken,
+          action_type: "message",
+        });
 
         return event;
       }
