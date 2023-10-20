@@ -407,7 +407,6 @@ const messageHandeler = async (event) => {
             }),
           },
           replyToken: event.replyToken,
-          action_type: "message",
         });
 
         return event;
